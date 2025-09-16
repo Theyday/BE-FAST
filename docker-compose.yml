@@ -1,0 +1,27 @@
+version: '3.4'
+
+services:
+  db:
+    image: postgres:17.4-alpine
+    environment:
+      POSTGRES_USER: senghyuk66
+      POSTGRES_PASSWORD: zz
+      POSTGRES_DB: theyday
+      POSTGRES_INITDB_ARGS: '--encoding=UTF-8'
+    ports:
+      - 5432:5432
+    volumes:
+      - ./db/data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    user: root
+    environment:
+      PGADMIN_DEFAULT_EMAIL: 'admin@417.co.kr'
+      PGADMIN_DEFAULT_PASSWORD: 'qwe123123'
+    ports:
+      - 3030:80
+    volumes:
+      - ./pgadmin/data:/var/lib/pgadmin
+    depends_on:
+      - db
