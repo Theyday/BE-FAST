@@ -1,6 +1,7 @@
 from functools import lru_cache
 from pydantic import BaseSettings, BaseModel
 from dotenv import load_dotenv
+from datetime import timedelta # Import timedelta
 
 load_dotenv()
 
@@ -24,8 +25,12 @@ class BaseConfig(BaseSettings):
     CSRF_PROTECT: bool = False
     COOKIE_SECURE: bool = False  # should be True in production
     COOKIE_SAMESITE: str = 'lax'  # should be 'lax' or 'strict' in production
-    ACCESS_TOKEN_EXPIRES: int = 2592000000
-    REFRESH_TOKEN_EXPIRES: int = 31536000000
+    ACCESS_TOKEN_EXPIRES_DAYS: int = 30 # For readability
+    REFRESH_TOKEN_EXPIRES_DAYS: int = 365 # For readability
+
+    # Redis Verification Code Expiration
+    PHONE_VERIFICATION_EXPIRATION: int = 5 # minutes
+    EMAIL_VERIFICATION_EXPIRATION: int = 10 # minutes
 
     # ADMIN Settings
     ADMIN_USERNAME: str = 'admin'
@@ -80,5 +85,5 @@ class AuthJWTSettings(BaseModel):
     authjwt_cookie_csrf_protect: bool = settings.CSRF_PROTECT
     authjwt_cookie_secure: bool = settings.COOKIE_SECURE
     authjwt_cookie_samesite: str = settings.COOKIE_SAMESITE
-    authjwt_access_token_expires: int = settings.ACCESS_TOKEN_EXPIRES
-    authjwt_refresh_token_expires: int = settings.REFRESH_TOKEN_EXPIRES
+    authjwt_access_token_expires: timedelta = timedelta(days=settings.ACCESS_TOKEN_EXPIRES_DAYS)
+    authjwt_refresh_token_expires: timedelta = timedelta(days=settings.REFRESH_TOKEN_EXPIRES_DAYS)

@@ -1,0 +1,10 @@
+from enum import Enum
+
+class AlertType(str, Enum):
+    EVENT_START = "EVENT_START"
+    EVENT_END = "EVENT_END"
+    TASK_SCHEDULE = "TASK_SCHEDULE"
+    TASK_START = "TASK_START"
+    TASK_END = "TASK_END"
+    ROUTINE_START = "ROUTINE_START"
+    ROUTINE_END = "ROUTINE_END"
