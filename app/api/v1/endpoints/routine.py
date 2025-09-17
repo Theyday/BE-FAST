@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, Path
 from typing import Annotated, List, Optional
 from fastapi_jwt_auth import AuthJWT
 
-from ....model.response_models import ApiResponse
-from ....model.schedule.routine.schemas import RoutineCreateRequest, RoutineResponse
-from ....app.services.user_service import UserService # To get user from subject
-from ....app.services.routine_service import RoutineService, CustomException
+from model.response_models import ApiResponse
+from model.schedule.routine.schemas import RoutineCreateRequest, RoutineResponse
+from app.services.user_service import UserService # To get user from subject
+from app.services.routine_service import RoutineService, CustomException
 
 router = APIRouter()
 

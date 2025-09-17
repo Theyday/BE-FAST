@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, Path
 from typing import Annotated
 from fastapi_jwt_auth import AuthJWT
 
-from ....model.response_models import ApiResponse
-from ....model.schedule.event.schemas import EventDetailResponse, EventEditRequest, EventResponse
-from ....app.services.user_service import UserService # To get user from subject
-from ....app.services.event_service import EventService, CustomException
+from model.response_models import ApiResponse
+from model.schedule.event.schemas import EventDetailResponse, EventEditRequest, EventResponse
+from app.services.user_service import UserService # To get user from subject
+from app.services.event_service import EventService, CustomException
 
 router = APIRouter()
 

@@ -72,7 +72,6 @@ class TaskService:
             alert=task_alert_response
         )
 
-    @transaction.atomic # For atomicity as in Spring Boot @Transactional
     def edit_task(self, task_id: int, request: task_schemas.TaskEditRequest, user_id: int) -> None:
         task = task_crud.get_task_by_id(self.db, task_id)
         if not task:
@@ -126,7 +125,6 @@ class TaskService:
                 minutes_before=request.alert.task_end
             ))
 
-    @transaction.atomic # For atomicity as in Spring Boot @Transactional
     def delete_task(self, task_id: int, user_id: int) -> None:
         task = task_crud.get_task_by_id_with_category(self.db, task_id, user_models.User(id=user_id)) # Fetch with user context for owner check
         if not task:
@@ -144,7 +142,6 @@ class TaskService:
         # If not, you need to manually delete participants and alerts first.
         task_crud.delete(self.db, task)
 
-    @transaction.atomic # For atomicity as in Spring Boot @Transactional
     def schedule_task(self, task_id: int, request: task_schemas.ScheduleTaskRequest) -> None:
         task = task_crud.get_task_by_id(self.db, task_id)
         if not task:
@@ -153,7 +150,6 @@ class TaskService:
         task.scheduled_time = request.scheduled_time
         task_crud.save(self.db, task)
 
-    @transaction.atomic # For atomicity as in Spring Boot @Transactional
     def toggle_task_complete(self, task_id: int, complete_date: date) -> None:
         task = task_crud.get_task_by_id(self.db, task_id)
         if not task:

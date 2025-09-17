@@ -69,7 +69,6 @@ class EventService:
             alert=event_alert_response
         )
 
-    @transaction.atomic # For atomicity as in Spring Boot @Transactional
     def edit_event(self, event_id: int, request: event_schemas.EventEditRequest, user_id: int) -> None:
         event = event_crud.get_event_by_id(self.db, event_id)
         if not event:
@@ -118,7 +117,6 @@ class EventService:
                 minutes_before=request.alert.event_end
             ))
 
-    @transaction.atomic # For atomicity as in Spring Boot @Transactional
     def delete_event(self, event_id: int, user_id: int) -> None:
         event = event_crud.get_event_by_id_with_category(self.db, event_id, user_models.User(id=user_id)) # Fetch with user context for owner check
         if not event:

@@ -3,10 +3,10 @@ from typing import Annotated, Optional
 from datetime import date
 from fastapi_jwt_auth import AuthJWT
 
-from ....model.response_models import ApiResponse
-from ....model.schedule.task.schemas import TaskDetailResponse, TaskEditRequest, ScheduleTaskRequest, TaskResponse
-from ....app.services.user_service import UserService # To get user from subject
-from ....app.services.task_service import TaskService, CustomException
+from model.response_models import ApiResponse
+from model.schedule.task.schemas import TaskDetailResponse, TaskEditRequest, ScheduleTaskRequest, TaskResponse
+from app.services.user_service import UserService # To get user from subject
+from app.services.task_service import TaskService, CustomException
 
 router = APIRouter()
 

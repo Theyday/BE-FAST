@@ -3,11 +3,11 @@ from sqlalchemy.orm import Session
 from typing import Annotated, List
 from fastapi_jwt_auth import AuthJWT
 
-from ....model.database import get_db
-from ....model.response_models import ApiResponse
-from ....model.category.schemas import CategoryCreate, CategoryUpdate, CategoryResponse
-from ....app.services.user_service import UserService # For _load_user_by_username
-from ....app.services.category_service import CategoryService, CustomException
+from model.database import get_db
+from model.response_models import ApiResponse
+from model.category.schemas import CategoryCreate, CategoryUpdate, CategoryResponse
+from app.services.user_service import UserService # For _load_user_by_username
+from app.services.category_service import CategoryService, CustomException
 
 router = APIRouter()
 

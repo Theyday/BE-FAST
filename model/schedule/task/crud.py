@@ -3,8 +3,8 @@ from datetime import date
 from sqlalchemy.orm import Session, joinedload
 
 from . import models
-from ...user import models as user_models
-from ...participant import models as participant_models
+from model.user import models as user_models
+from model.schedule.participant import models as participant_models
 
 class TaskCRUD:
     def find_uncompleted_tasks_by_participant_and_range(self, db: Session, user: user_models.User, start_date: date, end_date: date) -> List[models.Task]:
