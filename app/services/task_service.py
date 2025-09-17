@@ -31,8 +31,8 @@ class TaskService:
     ):
         self.db = db
 
-    def get_task_detail(self, task_id: int, user_id: int) -> task_schemas.TaskDetailResponse:
-        user = user_crud.get_user_by_id(self.db, user_id)
+    def get_task_detail(self, task_id: int, username: str) -> task_schemas.TaskDetailResponse:
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
@@ -72,7 +72,7 @@ class TaskService:
             alert=task_alert_response
         )
 
-    def edit_task(self, task_id: int, request: task_schemas.TaskEditRequest, user_id: int) -> None:
+    def edit_task(self, task_id: int, request: task_schemas.TaskEditRequest, username: str) -> None:
         task = task_crud.get_task_by_id(self.db, task_id)
         if not task:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
@@ -86,7 +86,7 @@ class TaskService:
         task.description = request.description
         task_crud.save(self.db, task) # Save task changes
 
-        user = user_crud.get_user_by_id(self.db, user_id)
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
@@ -125,12 +125,12 @@ class TaskService:
                 minutes_before=request.alert.task_end
             ))
 
-    def delete_task(self, task_id: int, user_id: int) -> None:
-        task = task_crud.get_task_by_id_with_category(self.db, task_id, user_models.User(id=user_id)) # Fetch with user context for owner check
+    def delete_task(self, task_id: int, username: str) -> None:
+        task = task_crud.get_task_by_id_with_category(self.db, task_id, user_models.User(id=username)) # Fetch with user context for owner check
         if not task:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
-        user = user_crud.get_user_by_id(self.db, user_id)
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
@@ -142,7 +142,7 @@ class TaskService:
         # If not, you need to manually delete participants and alerts first.
         task_crud.delete(self.db, task)
 
-    def schedule_task(self, task_id: int, request: task_schemas.ScheduleTaskRequest) -> None:
+    def schedule_task(self, task_id: int, request: task_schemas.ScheduleTaskRequest, username: str) -> None:
         task = task_crud.get_task_by_id(self.db, task_id)
         if not task:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
@@ -150,7 +150,7 @@ class TaskService:
         task.scheduled_time = request.scheduled_time
         task_crud.save(self.db, task)
 
-    def toggle_task_complete(self, task_id: int, complete_date: date) -> None:
+    def toggle_task_complete(self, task_id: int, complete_date: date, username: str) -> None:
         task = task_crud.get_task_by_id(self.db, task_id)
         if not task:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")

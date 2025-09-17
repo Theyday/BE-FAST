@@ -27,8 +27,8 @@ class RoutineService:
     ):
         self.db = db
 
-    def create_routine(self, request: routine_schemas.RoutineCreateRequest, user_id: int) -> None:
-        user = user_crud.get_user_by_id(self.db, user_id)
+    def create_routine(self, request: routine_schemas.RoutineCreateRequest, username: str) -> None:
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
             
@@ -57,8 +57,8 @@ class RoutineService:
                     minutes_before=request.alert.routine_end
                 ))
 
-    def update_routine(self, routine_id: int, request: routine_schemas.RoutineCreateRequest, user_id: int) -> None:
-        user = user_crud.get_user_by_id(self.db, user_id)
+    def update_routine(self, routine_id: int, request: routine_schemas.RoutineCreateRequest, username: str) -> None:
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
             
@@ -93,8 +93,8 @@ class RoutineService:
                     minutes_before=request.alert.routine_end
                 ))
 
-    def get_my_routines(self, user_id: int) -> List[routine_schemas.RoutineResponse]:
-        user = user_crud.get_user_by_id(self.db, user_id)
+    def get_my_routines(self, username: str) -> List[routine_schemas.RoutineResponse]:
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
@@ -143,8 +143,8 @@ class RoutineService:
             alert=alert_response
         )
 
-    def delete_routine(self, routine_id: int, user_id: int) -> None:
-        user = user_crud.get_user_by_id(self.db, user_id)
+    def delete_routine(self, routine_id: int, username: str) -> None:
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 

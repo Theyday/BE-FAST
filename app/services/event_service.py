@@ -30,8 +30,8 @@ class EventService:
     ):
         self.db = db
 
-    def get_event_detail(self, event_id: int, user_id: int) -> event_schemas.EventDetailResponse:
-        user = user_crud.get_user_by_id(self.db, user_id)
+    def get_event_detail(self, event_id: int, username: str) -> event_schemas.EventDetailResponse:
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
@@ -69,7 +69,7 @@ class EventService:
             alert=event_alert_response
         )
 
-    def edit_event(self, event_id: int, request: event_schemas.EventEditRequest, user_id: int) -> None:
+    def edit_event(self, event_id: int, request: event_schemas.EventEditRequest, username: str) -> None:
         event = event_crud.get_event_by_id(self.db, event_id)
         if not event:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
@@ -117,12 +117,12 @@ class EventService:
                 minutes_before=request.alert.event_end
             ))
 
-    def delete_event(self, event_id: int, user_id: int) -> None:
-        event = event_crud.get_event_by_id_with_category(self.db, event_id, user_models.User(id=user_id)) # Fetch with user context for owner check
+    def delete_event(self, event_id: int, username: str) -> None:
+        event = event_crud.get_event_by_id_with_category(self.db, event_id, user_models.User(id=username)) # Fetch with user context for owner check
         if not event:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
 
-        user = user_crud.get_user_by_id(self.db, user_id)
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 

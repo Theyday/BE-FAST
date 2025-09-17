@@ -22,8 +22,8 @@ class CategoryService:
     ):
         self.db = db
 
-    def get_my_categories(self, user_id: int) -> List[category_schemas.CategoryResponse]:
-        user = user_crud.get_user_by_id(self.db, user_id)
+    def get_my_categories(self, username: str) -> List[category_schemas.CategoryResponse]:
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
@@ -36,8 +36,8 @@ class CategoryService:
         
         return [category_schemas.CategoryResponse.model_validate(c) for c in sorted_categories]
 
-    def create_category(self, request: category_schemas.CategoryCreate, user_id: int) -> category_schemas.CategoryResponse:
-        user = user_crud.get_user_by_id(self.db, user_id)
+    def create_category(self, request: category_schemas.CategoryCreate, username: str) -> category_schemas.CategoryResponse:
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
@@ -50,8 +50,8 @@ class CategoryService:
         saved_category = category_crud.save(self.db, category)
         return category_schemas.CategoryResponse.model_validate(saved_category)
 
-    def update_category(self, category_id: int, request: category_schemas.CategoryUpdate, user_id: int) -> category_schemas.CategoryResponse:
-        user = user_crud.get_user_by_id(self.db, user_id)
+    def update_category(self, category_id: int, request: category_schemas.CategoryUpdate, username: str) -> category_schemas.CategoryResponse:
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
@@ -67,8 +67,8 @@ class CategoryService:
         updated_category = category_crud.save(self.db, category)
         return category_schemas.CategoryResponse.model_validate(updated_category)
 
-    def delete_category(self, category_id: int, user_id: int) -> None:
-        user = user_crud.get_user_by_id(self.db, user_id)
+    def delete_category(self, category_id: int, username: str) -> None:
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 

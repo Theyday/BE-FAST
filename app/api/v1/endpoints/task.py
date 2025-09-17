@@ -13,35 +13,32 @@ router = APIRouter()
 @router.get("/{task_id}", response_model=ApiResponse[TaskDetailResponse])
 def get_task_detail(
     task_id: Annotated[int, Path(ge=1, alias="taskId")],
-    user_id: Annotated[int, Depends(lambda Authorize: Authorize.get_jwt_subject())],
     task_service: Annotated[TaskService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
-    Authorize.jwt_required() # Verify access token validity
-    task = task_service.get_task_detail(task_id, user_id)
+    username = Authorize.get_jwt_subject()
+    task = task_service.get_task_detail(task_id, username)
     return ApiResponse(message="작업을 조회하였습니다.", data=task)
 
 @router.put("/{task_id}", response_model=ApiResponse[None])
 def edit_task(
     task_id: Annotated[int, Path(ge=1, alias="taskId")],
     request: TaskEditRequest,
-    user_id: Annotated[int, Depends(lambda Authorize: Authorize.get_jwt_subject())],
     task_service: Annotated[TaskService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
-    Authorize.jwt_required() # Verify access token validity
-    task_service.edit_task(task_id, request, user_id)
+    username = Authorize.get_jwt_subject()
+    task_service.edit_task(task_id, request, username)
     return ApiResponse(message="작업을 수정하였습니다.", data=None)
 
 @router.delete("/{task_id}", response_model=ApiResponse[None])
 def delete_task(
     task_id: Annotated[int, Path(ge=1, alias="taskId")],
-    user_id: Annotated[int, Depends(lambda Authorize: Authorize.get_jwt_subject())],
     task_service: Annotated[TaskService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
-    Authorize.jwt_required() # Verify access token validity
-    task_service.delete_task(task_id, user_id)
+    username = Authorize.get_jwt_subject()
+    task_service.delete_task(task_id, username)
     return ApiResponse(message="작업을 삭제하였습니다.", data=None)
 
 @router.put("/{task_id}/schedule", response_model=ApiResponse[None])
@@ -51,10 +48,8 @@ def schedule_task(
     task_service: Annotated[TaskService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
-    Authorize.jwt_required() # Verify access token validity for user_id
-    # user_id is not directly used in scheduleTask, but we might need it for validation or context
-    user_id = Authorize.get_jwt_subject() # Get user_id if needed inside service for validation
-    task_service.schedule_task(task_id, request)
+    username = Authorize.get_jwt_subject()
+    task_service.schedule_task(task_id, request, username)
     return ApiResponse(message="작업을 일정에 추가하였습니다.", data=None)
 
 @router.put("/{task_id}/complete", response_model=ApiResponse[None])
@@ -64,8 +59,6 @@ def toggle_task_complete(
     task_service: Annotated[TaskService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
-    Authorize.jwt_required() # Verify access token validity for user_id
-    # user_id is not directly used in toggleTaskComplete, but we might need it for validation or context
-    user_id = Authorize.get_jwt_subject() # Get user_id if needed inside service for validation
-    task_service.toggle_task_complete(task_id, date)
+    username = Authorize.get_jwt_subject()
+    task_service.toggle_task_complete(task_id, date, username)
     return ApiResponse(message="작업을 완료하였습니다.", data=None)

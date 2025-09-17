@@ -28,8 +28,8 @@ class ScheduleService:
     ):
         self.db = db
 
-    def get_calendar_items_by_range(self, start_date: date, end_date: date, user_id: int) -> List[CalendarItemDto]:
-        user = user_crud.get_user_by_id(self.db, user_id)
+    def get_calendar_items_by_range(self, start_date: date, end_date: date, username: str) -> List[CalendarItemDto]:
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
@@ -107,8 +107,8 @@ class ScheduleService:
             return participant.category.color
         return "#000000" # Default color if not found
 
-    def change_schedule_type(self, schedule_id: int, current_type: ScheduleType, user_id: int) -> Union[dict, None]:
-        user = user_crud.get_user_by_id(self.db, user_id)
+    def change_schedule_type(self, schedule_id: int, current_type: ScheduleType, username: str) -> Union[dict, None]:
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
