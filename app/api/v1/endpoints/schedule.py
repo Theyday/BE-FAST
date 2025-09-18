@@ -17,6 +17,7 @@ def get_calendar_items_by_range(
     schedule_service: Annotated[ScheduleService, Depends()],
     Authorize: AuthJWT = Depends(),
 ):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
     items = schedule_service.get_calendar_items_by_range(start_date, end_date, username)
     return ApiResponse(message="기간 내 캘린더 데이터를 조회하였습니다.", data=items)

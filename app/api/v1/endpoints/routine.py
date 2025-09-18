@@ -30,11 +30,12 @@ def update_routine(
     routine_service.update_routine(routine_id, request, username)
     return ApiResponse(message="루틴을 수정하였습니다.", data=None)
 
-@router.get("/", response_model=ApiResponse[List[RoutineResponse]])
+@router.get("", response_model=ApiResponse[List[RoutineResponse]])
 def get_my_routines(
     routine_service: Annotated[RoutineService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
     routines = routine_service.get_my_routines(username)
     return ApiResponse(message="내 루틴 목록을 조회하였습니다.", data=routines)

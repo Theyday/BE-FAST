@@ -111,9 +111,9 @@ class RoutineService:
             response_routines.append(routine_schemas.RoutineResponse(
                 id=routine.id,
                 name=routine.name,
-                days_of_week=routine.days_of_week,
-                start_time=routine.start_time,
-                end_time=routine.end_time,
+                daysOfWeek=routine.days_of_week,
+                startTime=routine.start_time,
+                endTime=routine.end_time,
                 icon=routine.icon,
                 color=routine.color,
                 alert=alert_response

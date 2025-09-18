@@ -37,47 +37,43 @@ class ScheduleService:
         # Fetch events
         events = event_crud.find_by_participant_and_range(self.db, user, start_date, end_date)
         for event in events:
-            # Assuming Category is always present for a Participant for color
-            # This requires eager loading or a separate query if not eagerly loaded
-            # For now, let's assume direct access or a simple way to get category color
-            # We need to consider how to get the category color from the participant's category
-            # For simplicity, let's mock a color for now, or fetch it if relationships are set up correctly
-            # And the participant can also have multiple categories, so which one to pick?
-            # For now, we'll use a placeholder color and fix this when implementing actual category management.
-            color = "#CCCCCC" # Placeholder color
-            if event.participants and event.participants[0].category:
-                color = event.participants[0].category.color
+            color = "#CCCCCC"  # 기본값
+            for participant in event.participants:
+                if participant.user_id == user.id and participant.category:
+                    color = participant.category.color
+                    break
 
             items.append(CalendarItemDto(
                 id=event.id,
                 type=ScheduleType.EVENT.value,
                 name=event.name,
-                start_date=event.start_date,
-                end_date=event.end_date,
-                start_time=event.start_time,
-                end_time=event.end_time,
+                startDate=event.start_date,
+                endDate=event.end_date,
+                startTime=event.start_time,
+                endTime=event.end_time,
                 color=color,
-                is_completed=False, # Events are not completed
-                is_scheduled=event.start_time is not None or event.end_time is not None # If there's any time, it's scheduled
+                isCompleted=False, # Events are not completed
+                isScheduled=event.start_time is not None or event.end_time is not None # If there's any time, it's scheduled
             ))
         
-        # Fetch uncompleted tasks
         uncompleted_tasks = task_crud.find_uncompleted_tasks_by_participant_and_range(self.db, user, start_date, end_date)
         for task in uncompleted_tasks:
-            color = "#CCCCCC" # Placeholder color
-            if task.participants and task.participants[0].category:
-                color = task.participants[0].category.color
+            color = "#CCCCCC"
+            for participant in task.participants:
+                if participant.user_id == user.id and participant.category:
+                    color = participant.category.color
+                    break
             items.append(CalendarItemDto(
                 id=task.id,
                 type=ScheduleType.TASK.value,
                 name=task.name,
-                start_date=task.start_time.date() if task.start_time else None,
-                end_date=task.end_time.date() if task.end_time else None,
-                start_time=task.start_time.time() if task.start_time else None,
-                end_time=task.end_time.time() if task.end_time else None,
+                startDate=task.start_time.date() if task.start_time else None,
+                endDate=task.end_time.date() if task.end_time else None,
+                startTime=task.start_time.time() if task.start_time else None,
+                endTime=task.end_time.time() if task.end_time else None,
                 color=color,
-                is_completed=task.is_completed,
-                is_scheduled=task.scheduled_time is not None
+                isCompleted=task.is_completed,
+                isScheduled=task.scheduled_time is not None
             ))
 
         # Fetch completed tasks

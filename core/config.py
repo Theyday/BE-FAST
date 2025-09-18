@@ -15,13 +15,13 @@ class BaseConfig(BaseSettings):
     DB_HOST: str = 'localhost'
     DB_PORT: int = 5432
     DB_NAME: str = 'theyday'
-    USER: str = 'senghyuk66'
-    PASSWORD: str = 'zz'
+    USER: str = 'monstazo'
+    PASSWORD: str = 'tidlsl!2'
     SQLALCHEMY_DATABASE_URI: str = f'postgresql://{USER}:{PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
     # JWT Settings
     SECRET_KEY: str = '404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970'
-    TOKEN_LOCATION: set = {'cookies'}
+    TOKEN_LOCATION: set = {'headers'}
     CSRF_PROTECT: bool = False
     COOKIE_SECURE: bool = False  # should be True in production
     COOKIE_SAMESITE: str = 'lax'  # should be 'lax' or 'strict' in production

@@ -8,16 +8,16 @@ from model.schedule.participant import models as participant_models
 
 class EventCRUD:
     def find_by_participant_and_range(self, db: Session, user: user_models.User, start_date: date, end_date: date) -> List[models.Event]:
-        # This is a simplified version, as the original query was complex, potentially involving joins
-        # with Participant and then filtering events. For now, we fetch events where the user is a participant
-        # and the event's date range overlaps with the given range.
         return (
             db.query(models.Event)
-            .join(participant_models.Participant, models.Event.id == participant_models.Participant.event_id)
+            .join(models.Event.participants)
+            .join(participant_models.Participant.category)
             .filter(participant_models.Participant.user_id == user.id)
             .filter(models.Event.start_date <= end_date)
             .filter(models.Event.end_date >= start_date)
-            .options(joinedload(models.Event.participants).joinedload(participant_models.Participant.category))
+            .options(
+                joinedload(models.Event.participants).joinedload(participant_models.Participant.category)
+            )
             .all()
         )
 
