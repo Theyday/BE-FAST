@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class UserBase(BaseModel):
     email: Optional[str] = None
@@ -8,7 +8,7 @@ class UserBase(BaseModel):
     image: Optional[str] = None
 
 class UserCreate(BaseModel):
-    phone_or_email: str
+    phone_or_email: str 
     name: str
 
 class UserInDB(UserBase):
@@ -18,7 +18,7 @@ class UserInDB(UserBase):
         from_attributes = True
 
 class SignUpRequest(BaseModel):
-    phone_or_email: str
+    phone_or_email: str = Field(..., alias="phoneOrEmail")
     name: str
 
 class TokenResponse(BaseModel):

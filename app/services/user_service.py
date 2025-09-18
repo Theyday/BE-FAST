@@ -3,7 +3,7 @@ import redis
 from datetime import timedelta
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from fastapi_jwt_auth import AuthJWT
 
@@ -47,13 +47,13 @@ class UserService:
         return user
 
     def send_code(self, value: str) -> bool:
-        # if value == "01062013110":  # Hardcoded test number
-        #     self.redis_client.setex(
-        #         f"verification:{value}",
-        #         timedelta(minutes=settings.PHONE_VERIFICATION_EXPIRATION),
-        #         "123456"
-        #     )
-        #     return True
+        if value == "01062013110":  # Hardcoded test number
+            self.redis_client.setex(
+                f"verification:{value}",
+                timedelta(minutes=settings.PHONE_VERIFICATION_EXPIRATION),
+                "123456"
+            )
+            return True
 
         is_exist = False
         verification_code = self._create_verification_code()
@@ -118,13 +118,12 @@ class UserService:
         
         return user_schemas.TokenResponse(accessToken=access_token, refreshToken=refresh_token)
 
-    def refresh(self, authorization_header: str) -> user_schemas.TokenResponse:
-        self.Authorize.jwt_refresh_token_required() # Verify refresh token validity
-        current_user = self.Authorize.get_jwt_subject()
+    def refresh(self) -> user_schemas.TokenResponse:
         
+        current_user = self.Authorize.get_jwt_subject()
         access_token = self.Authorize.create_access_token(subject=current_user)
         refresh_token = self.Authorize.create_refresh_token(subject=current_user)
-        return user_schemas.TokenResponse(access_token=access_token, refresh_token=refresh_token)
+        return user_schemas.TokenResponse(accessToken=access_token, refreshToken=refresh_token)
 
     def register_device_token(self, request: user_schemas.DeviceTokenRequest, user_id: Optional[int]) -> None:
         device_token = user_device_token_crud.find_by_token(self.db, request.token)

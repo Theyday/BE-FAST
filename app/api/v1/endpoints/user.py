@@ -13,7 +13,7 @@ router = APIRouter()
 @router.get("/send-code", response_model=ApiResponse[bool])
 def send_code(value: str, user_service: Annotated[UserService, Depends()]):
     is_user = user_service.send_code(value)
-    
+
     return ApiResponse(message="인증번호 전송 완료", data=is_user)
 
 @router.get("/verify-code", response_model=ApiResponse[bool])
@@ -32,8 +32,10 @@ def sign_up(request: SignUpRequest, user_service: Annotated[UserService, Depends
     return ApiResponse(message="회원가입에 성공하였습니다.", data=token_response)
 
 @router.get("/refresh", response_model=ApiResponse[TokenResponse])
-def refresh(authorization: Annotated[str, Header()], user_service: Annotated[UserService, Depends()]):
-    token_response = user_service.refresh(authorization)
+def refresh(user_service: Annotated[UserService, Depends()],
+Authorize: AuthJWT = Depends()):
+    Authorize.jwt_refresh_token_required()   
+    token_response = user_service.refresh()
     return ApiResponse(message="토큰 갱신에 성공하였습니다.", data=token_response)
 
 @router.post("/device-token", response_model=ApiResponse[None])

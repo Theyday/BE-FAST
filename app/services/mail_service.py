@@ -46,6 +46,5 @@ class MailService:
                 server.starttls()
                 server.login(self.mail_username, self.mail_password)
                 server.sendmail(self.mail_username, to, message.as_string())
-            print(f"이메일 전송 성공: {to}에게 {subject} 발송 완료")
         except Exception as e:
             print(f"이메일 전송 실패: {e}")
