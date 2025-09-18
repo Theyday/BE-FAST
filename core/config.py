@@ -33,6 +33,12 @@ class BaseConfig(BaseSettings):
     NAVER_CLOUD_SMS_SECRET_KEY: str = "ncp_iam_BPKMKRHyXWQxmTMjCoY1sStJXbjsKeSVmX"
     NAVER_CLOUD_SMS_SERVICE_ID: str = "ncp:sms:kr:353811575184:theyday"
 
+    # 메일 서버 설정
+    MAIL_USERNAME: str = "togg0524@gmail.com"
+    MAIL_PASSWORD: str = "yhgj xelq kwaj hapq"
+    MAIL_SERVER: str = "smtp.gmail.com"
+    MAIL_PORT: int = 587
+
     # Redis Verification Code Expiration
     PHONE_VERIFICATION_EXPIRATION: int = 5 # minutes
     EMAIL_VERIFICATION_EXPIRATION: int = 10 # minutes

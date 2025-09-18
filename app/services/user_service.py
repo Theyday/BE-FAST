@@ -16,16 +16,11 @@ from model.user import models as user_models
 from model.user import schemas as user_schemas
 from model.user.deviceToken import models as user_device_token_models
 from app.services.sms_service import SmsService
+from app.services.mail_service import MailService
 
 class CustomException(HTTPException):
     def __init__(self, status_code: int, detail: str):
         super().__init__(status_code=status_code, detail=detail)
-
-# Placeholder for MailService
-class MailService:
-    def send_simple_mail_message(self, to: str, code: str, is_exist: bool):
-        print(f"Sending email to {to} with code {code}. User exists: {is_exist}")
-        # TODO: Implement actual email sending logic
 
 class UserService:
     def __init__(
