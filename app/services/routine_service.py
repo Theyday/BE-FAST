@@ -105,8 +105,8 @@ class RoutineService:
             routine_start_alert = next((a.minutes_before for a in routine.alerts if a.type == AlertType.ROUTINE_START), None)
             routine_end_alert = next((a.minutes_before for a in routine.alerts if a.type == AlertType.ROUTINE_END), None)
             alert_response = RoutineAlertResponse(
-                routine_start=routine_start_alert,
-                routine_end=routine_end_alert
+                routineStart=routine_start_alert,
+                routineEnd=routine_end_alert
             )
             response_routines.append(routine_schemas.RoutineResponse(
                 id=routine.id,
@@ -127,17 +127,18 @@ class RoutineService:
         
         routine_start_alert = next((a.minutes_before for a in routine.alerts if a.type == AlertType.ROUTINE_START), None)
         routine_end_alert = next((a.minutes_before for a in routine.alerts if a.type == AlertType.ROUTINE_END), None)
+
         alert_response = RoutineAlertResponse(
-            routine_start=routine_start_alert,
-            routine_end=routine_end_alert
+            routineStart=routine_start_alert,
+            routineEnd=routine_end_alert
         )
 
         return routine_schemas.RoutineResponse(
             id=routine.id,
             name=routine.name,
-            days_of_week=routine.days_of_week,
-            start_time=routine.start_time,
-            end_time=routine.end_time,
+            daysOfWeek=routine.days_of_week,
+            startTime=routine.start_time,
+            endTime=routine.end_time,
             icon=routine.icon,
             color=routine.color,
             alert=alert_response

@@ -42,10 +42,11 @@ def get_my_routines(
 
 @router.get("/{routine_id}", response_model=ApiResponse[RoutineResponse])
 def get_routine(
-    routine_id: Annotated[int, Path(ge=1, alias="routineId")],
+    routine_id: Annotated[int, Path(ge=1)],
     routine_service: Annotated[RoutineService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
     routine = routine_service.get_routine(routine_id)
     return ApiResponse(message="루틴을 조회하였습니다.", data=routine)

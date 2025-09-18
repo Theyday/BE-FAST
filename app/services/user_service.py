@@ -15,6 +15,7 @@ from model.schedule.routine.crud import routine_crud
 from model.user import models as user_models
 from model.user import schemas as user_schemas
 from model.user.deviceToken import models as user_device_token_models
+from app.services.sms_service import SmsService
 
 class CustomException(HTTPException):
     def __init__(self, status_code: int, detail: str):
@@ -25,12 +26,6 @@ class MailService:
     def send_simple_mail_message(self, to: str, code: str, is_exist: bool):
         print(f"Sending email to {to} with code {code}. User exists: {is_exist}")
         # TODO: Implement actual email sending logic
-
-# Placeholder for SmsService
-class SmsService:
-    def send_sms(self, phone_number: str, code: str):
-        print(f"Sending SMS to {phone_number} with code {code}")
-        # TODO: Implement actual SMS sending logic
 
 class UserService:
     def __init__(
@@ -57,13 +52,13 @@ class UserService:
         return user
 
     def send_code(self, value: str) -> bool:
-        if value == "01062013110":  # Hardcoded test number
-            self.redis_client.setex(
-                f"verification:{value}",
-                timedelta(minutes=settings.PHONE_VERIFICATION_EXPIRATION),
-                "123456"
-            )
-            return True
+        # if value == "01062013110":  # Hardcoded test number
+        #     self.redis_client.setex(
+        #         f"verification:{value}",
+        #         timedelta(minutes=settings.PHONE_VERIFICATION_EXPIRATION),
+        #         "123456"
+        #     )
+        #     return True
 
         is_exist = False
         verification_code = self._create_verification_code()

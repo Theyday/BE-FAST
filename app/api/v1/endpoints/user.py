@@ -13,6 +13,7 @@ router = APIRouter()
 @router.get("/send-code", response_model=ApiResponse[bool])
 def send_code(value: str, user_service: Annotated[UserService, Depends()]):
     is_user = user_service.send_code(value)
+    
     return ApiResponse(message="인증번호 전송 완료", data=is_user)
 
 @router.get("/verify-code", response_model=ApiResponse[bool])

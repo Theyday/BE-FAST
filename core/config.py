@@ -28,6 +28,11 @@ class BaseConfig(BaseSettings):
     ACCESS_TOKEN_EXPIRES_DAYS: int = 30 # For readability
     REFRESH_TOKEN_EXPIRES_DAYS: int = 365 # For readability
 
+    # NAVER Cloud SMS 설정
+    NAVER_CLOUD_SMS_ACCESS_KEY: str = "ncp_iam_BPAMKR32W21UAxr3DgGK"
+    NAVER_CLOUD_SMS_SECRET_KEY: str = "ncp_iam_BPKMKRHyXWQxmTMjCoY1sStJXbjsKeSVmX"
+    NAVER_CLOUD_SMS_SERVICE_ID: str = "ncp:sms:kr:353811575184:theyday"
+
     # Redis Verification Code Expiration
     PHONE_VERIFICATION_EXPIRATION: int = 5 # minutes
     EMAIL_VERIFICATION_EXPIRATION: int = 10 # minutes
