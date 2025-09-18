@@ -11,8 +11,12 @@ from app.services.category_service import CategoryService, CustomException
 
 router = APIRouter()
 
-@router.get("/", response_model=ApiResponse[List[CategoryResponse]])
-def get_my_categories(category_service: Annotated[CategoryService, Depends()], Authorize: AuthJWT = Depends()):
+@router.get("", response_model=ApiResponse[List[CategoryResponse]])
+def get_my_categories(
+    category_service: Annotated[CategoryService, Depends()], 
+    Authorize: AuthJWT = Depends()
+):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
     categories = category_service.get_my_categories(username)
     return ApiResponse(message="카테고리 목록을 조회하였습니다.", data=categories)

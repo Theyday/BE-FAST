@@ -6,6 +6,14 @@ from . import models
 from ..user import models as user_models
 
 class CategoryCRUD:
+    def find_by_user_order_by_created(self, db: Session, user: user_models.User) -> List[models.Category]:
+        return (
+            db.query(models.Category)
+            .filter(models.Category.user_id == user.id)
+            .order_by(models.Category.created_at.asc())
+            .all()
+        )
+
     def save_all(self, db: Session, categories: List[models.Category]) -> List[models.Category]:
         db.add_all(categories)
         db.commit()

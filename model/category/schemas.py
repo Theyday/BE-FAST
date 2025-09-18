@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class CategoryBase(BaseModel):
     name: str
@@ -13,15 +13,16 @@ class CategoryUpdate(CategoryBase):
 
 class CategoryResponse(CategoryBase):
     id: int
-    is_default: bool
+    is_default: bool = Field(False, alias="isDefault")
 
     class Config:
         from_attributes = True
+        orm_mode = True
 
 class CategoryResponseWithoutName(BaseModel):
     id: int
     color: str
-    is_default: bool
+    is_default: bool = Field(False, alias="isDefault")
 
     class Config:
         from_attributes = True

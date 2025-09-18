@@ -37,20 +37,16 @@ class TaskCRUD:
         )
 
     def find_completed_tasks_by_participant_and_range(self, db: Session, user: user_models.User, start_date: date, end_date: date) -> List[models.Task]:
-        """
-        완료된 Task들을 조회하는 메소드
-        - 참가자(user) 기준
-        - 완료된 Task만
-        - completed_at 기준으로 날짜 범위 필터
-        """
+        Task = models.Task
+        Participant = participant_models.Participant
         return (
-            db.query(models.Task)
-            .join(participant_models.Participant, models.Task.id == participant_models.Participant.task_id)
-            .filter(participant_models.Participant.user_id == user.id)
-            .filter(models.Task.is_completed == True)
-            .filter(models.Task.completed_at >= start_date)
-            .filter(models.Task.completed_at <= end_date)
-            .options(joinedload(models.Task.participants).joinedload(participant_models.Participant.category))
+            db.query(Task)
+            .join(Participant, Task.id == Participant.task_id)
+            .filter(Participant.user_id == user.id)
+            .filter(Task.is_completed == True)
+            .filter(Task.completed_at >= start_date)
+            .filter(Task.completed_at <= end_date)
+            .options(joinedload(Task.participants).joinedload(Participant.category))
             .all()
         )
 

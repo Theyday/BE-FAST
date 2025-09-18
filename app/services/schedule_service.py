@@ -29,6 +29,7 @@ class ScheduleService:
         self.db = db
 
     def get_calendar_items_by_range(self, start_date: date, end_date: date, username: str) -> List[CalendarItemDto]:
+        print(start_date, end_date)
         user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -63,36 +64,72 @@ class ScheduleService:
                 if participant.user_id == user.id and participant.category:
                     color = participant.category.color
                     break
+            # Java CalendarItemDto 생성 규칙에 맞춰 값 세팅
+            # startDate: scheduled_time, 없으면 start_time, 없으면 created_at > end_time ? end_time : created_at
+            # endDate: end_time, 없으면 9999-12-31
+            # startTime: scheduled_time
+            # endTime: end_time
+            # isScheduled: scheduled_time is not None
+
+            # startDate 계산
+            if task.scheduled_time:
+                task_start_date = task.scheduled_time.date()
+            elif task.start_time:
+                task_start_date = task.start_time.date()
+            elif task.created_at and task.end_time and task.created_at > task.end_time:
+                task_start_date = task.end_time.date()
+            elif task.created_at:
+                task_start_date = task.created_at.date()
+            else:
+                task_start_date = None
+
+            # endDate 계산
+            if task.end_time:
+                task_end_date = task.end_time.date()
+            else:
+                task_end_date = date(9999, 12, 31)
+
+            # startTime, endTime
+            task_start_time = task.scheduled_time.time() if task.scheduled_time else None
+            task_end_time = task.end_time.time() if task.end_time else None
+
             items.append(CalendarItemDto(
                 id=task.id,
                 type=ScheduleType.TASK.value,
                 name=task.name,
-                startDate=task.start_time.date() if task.start_time else None,
-                endDate=task.end_time.date() if task.end_time else None,
-                startTime=task.start_time.time() if task.start_time else None,
-                endTime=task.end_time.time() if task.end_time else None,
+                startDate=task_start_date,
+                endDate=task_end_date,
+                startTime=task_start_time,
+                endTime=task_end_time,
                 color=color,
                 isCompleted=task.is_completed,
                 isScheduled=task.scheduled_time is not None
             ))
 
-        # Fetch completed tasks
         completed_tasks = task_crud.find_completed_tasks_by_participant_and_range(self.db, user, start_date, end_date)
         for task in completed_tasks:
-            color = "#CCCCCC" # Placeholder color
-            if task.participants and task.participants[0].category:
-                color = task.participants[0].category.color
+            color = "#CCCCCC"
+            for participant in task.participants:
+                if participant.user_id == user.id and participant.category:
+                    color = participant.category.color
+                    break
+
+            if(task.end_time):
+                task_end_date = task.end_time.date()
+            else:
+                task_end_date = date(9999, 12, 31)
+            
             items.append(CalendarItemDto(
                 id=task.id,
                 type=ScheduleType.TASK.value,
                 name=task.name,
-                start_date=task.completed_at,
-                end_date=task.completed_at,
-                start_time=None,
-                end_time=None,
+                startDate=task.completed_at,
+                endDate=task_end_date,
+                startTime=task.scheduled_time.time() if task.scheduled_time else None,
+                endTime=task.end_time.time() if task.end_time else None,
                 color=color,
-                is_completed=task.is_completed,
-                is_scheduled=False # Completed tasks might not have scheduled time in this context
+                isCompleted=task.is_completed,
+                isScheduled=task.scheduled_time is not None
             ))
         
         return items

@@ -11,10 +11,11 @@ router = APIRouter()
 
 @router.get("/{event_id}", response_model=ApiResponse[EventDetailResponse])
 def get_event_detail(
-    event_id: Annotated[int, Path(ge=1, alias="eventId")],
+    event_id: Annotated[int, Path(ge=1)],
     event_service: Annotated[EventService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
     event = event_service.get_event_detail(event_id, username)
     return ApiResponse(message="이벤트를 조회하였습니다.", data=event)

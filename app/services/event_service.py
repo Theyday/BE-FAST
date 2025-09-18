@@ -43,15 +43,20 @@ class EventService:
         if not participant:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Participant not found")
         
-        category_response = CategoryResponse.model_validate(participant.category) if participant.category else None
+        category_response = CategoryResponse(
+            id=participant.category.id,
+            name=participant.category.name,
+            color=participant.category.color,
+            isDefault=participant.category.is_default
+        )
 
         alerts = alert_crud.find_by_participant(self.db, participant)
         event_start_alert = next((a.minutes_before for a in alerts if a.type == AlertType.EVENT_START), None)
         event_end_alert = next((a.minutes_before for a in alerts if a.type == AlertType.EVENT_END), None)
 
         event_alert_response = EventAlertResponse(
-            event_start=event_start_alert,
-            event_end=event_end_alert
+            eventStart=event_start_alert,
+            eventEnd=event_end_alert
         )
 
         return event_schemas.EventDetailResponse(
@@ -60,10 +65,10 @@ class EventService:
             name=event.name,
             description=event.description,
             location=event.location,
-            start_date=event.start_date,
-            end_date=event.end_date,
-            start_time=event.start_time,
-            end_time=event.end_time,
+            startDate=event.start_date,
+            endDate=event.end_date,
+            startTime=event.start_time,
+            endTime=event.end_time,
             visibility=event.visibility,
             category=category_response,
             alert=event_alert_response

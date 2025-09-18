@@ -29,12 +29,11 @@ class CategoryService:
         
         # In Spring Boot, it was `findByUserOrderByRecentActivity`, which implies a custom ordering logic.
         # For now, let's just get by user and then sort in Python. Actual `recentActivity` would need to be tracked.
-        categories = self.db.query(category_models.Category).filter(category_models.Category.user_id == user.id).all()
+        categories = category_crud.find_by_user_order_by_created(self.db, user)
 
-        # Sort default categories to the front, then by other criteria if needed
-        sorted_categories = sorted(categories, key=lambda c: (not c.is_default, c.id)) # Sort by is_default (false first), then by id
+        sorted_categories = sorted(categories, key=lambda c: (not c.is_default, c.id)) # 
         
-        return [category_schemas.CategoryResponse.model_validate(c) for c in sorted_categories]
+        return [category_schemas.CategoryResponse.from_orm(c) for c in sorted_categories]
 
     def create_category(self, request: category_schemas.CategoryCreate, username: str) -> category_schemas.CategoryResponse:
         user = user_crud.get_user_by_email_or_phone(self.db, username)
