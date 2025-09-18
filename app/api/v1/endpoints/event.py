@@ -34,10 +34,11 @@ def edit_event(
 
 @router.delete("/{event_id}", response_model=ApiResponse[None])
 def delete_event(
-    event_id: Annotated[int, Path(ge=1, alias="eventId")],
+    event_id: Annotated[int, Path(ge=1)],
     event_service: Annotated[EventService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
     event_service.delete_event(event_id, username)
     return ApiResponse(message="이벤트를 삭제하였습니다.", data=None)

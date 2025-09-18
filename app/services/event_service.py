@@ -122,7 +122,7 @@ class EventService:
             ))
 
     def delete_event(self, event_id: int, username: str) -> None:
-        event = event_crud.get_event_by_id_with_category(self.db, event_id, user_models.User(id=username)) # Fetch with user context for owner check
+        event = event_crud.get_event_by_id(self.db, event_id)
         if not event:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
 
@@ -134,6 +134,4 @@ class EventService:
         if not is_owner:
             raise CustomException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden: User is not the owner of the event")
 
-        # Deleting event will cascade delete participants and alerts if cascade is set in models.
-        # If not, you need to manually delete participants and alerts first.
         event_crud.delete(self.db, event)
