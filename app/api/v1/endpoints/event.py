@@ -22,11 +22,12 @@ def get_event_detail(
 
 @router.put("/{event_id}", response_model=ApiResponse[None])
 def edit_event(
-    event_id: Annotated[int, Path(ge=1, alias="eventId")],
+    event_id: Annotated[int, Path(ge=1)],
     request: EventEditRequest,
     event_service: Annotated[EventService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
     event_service.edit_event(event_id, request, username)
     return ApiResponse(message="이벤트를 수정하였습니다.", data=None)

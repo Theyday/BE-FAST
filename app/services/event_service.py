@@ -79,7 +79,6 @@ class EventService:
         if not event:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
         
-        # Update event fields
         event.name = request.name
         event.location = request.location
         event.start_date = request.start_date
@@ -87,9 +86,9 @@ class EventService:
         event.start_time = request.start_time
         event.end_time = request.end_time
         event.description = request.description
-        event_crud.save(self.db, event) # Save event changes
+        event_crud.save(self.db, event)
 
-        user = user_crud.get_user_by_id(self.db, user_id)
+        user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 

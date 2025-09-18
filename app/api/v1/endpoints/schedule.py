@@ -29,6 +29,7 @@ def change_schedule_type(
     schedule_service: Annotated[ScheduleService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
     result = schedule_service.change_schedule_type(schedule_id, current_type, username)
     return ApiResponse(message="일정 타입을 변경하였습니다.", data=result)
