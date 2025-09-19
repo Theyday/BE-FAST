@@ -21,8 +21,9 @@ def get_my_categories(
     categories = category_service.get_my_categories(username)
     return ApiResponse(message="카테고리 목록을 조회하였습니다.", data=categories)
 
-@router.post("/", response_model=ApiResponse[CategoryResponse])
+@router.post("", response_model=ApiResponse[CategoryResponse])
 def create_category(request: CategoryCreate, category_service: Annotated[CategoryService, Depends()], Authorize: AuthJWT = Depends()):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
     category = category_service.create_category(request, username)
     return ApiResponse(message="카테고리가 생성되었습니다.", data=category)
@@ -34,6 +35,7 @@ def update_category(
     category_service: Annotated[CategoryService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
     category = category_service.update_category(category_id, request, username)
     return ApiResponse(message="카테고리가 수정되었습니다.", data=category)
@@ -44,6 +46,7 @@ def delete_category(
     category_service: Annotated[CategoryService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
     category_service.delete_category(category_id, username)
     return ApiResponse(message="카테고리가 삭제되었습니다.", data=None)

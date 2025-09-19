@@ -29,7 +29,6 @@ class ScheduleService:
         self.db = db
 
     def get_calendar_items_by_range(self, start_date: date, end_date: date, username: str) -> List[CalendarItemDto]:
-        print(start_date, end_date)
         user = user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")

@@ -14,6 +14,12 @@ class CategoryCRUD:
             .all()
         )
 
+    def save(self, db: Session, category: models.Category) -> models.Category:
+        db.add(category)
+        db.commit()
+        db.refresh(category)
+        return category
+
     def save_all(self, db: Session, categories: List[models.Category]) -> List[models.Category]:
         db.add_all(categories)
         db.commit()

@@ -31,9 +31,17 @@ class CategoryService:
         # For now, let's just get by user and then sort in Python. Actual `recentActivity` would need to be tracked.
         categories = category_crud.find_by_user_order_by_created(self.db, user)
 
-        sorted_categories = sorted(categories, key=lambda c: (not c.is_default, c.id)) # 
-        
-        return [category_schemas.CategoryResponse.from_orm(c) for c in sorted_categories]
+        sorted_categories = sorted(categories, key=lambda c: (not c.is_default, c.id))
+
+        result = []
+        for c in sorted_categories:
+            result.append(category_schemas.CategoryResponse(
+                id=c.id,
+                name=c.name,
+                color=c.color,
+                isDefault=c.is_default
+            ))
+        return result
 
     def create_category(self, request: category_schemas.CategoryCreate, username: str) -> category_schemas.CategoryResponse:
         user = user_crud.get_user_by_email_or_phone(self.db, username)
@@ -47,7 +55,12 @@ class CategoryService:
             is_default=False
         )
         saved_category = category_crud.save(self.db, category)
-        return category_schemas.CategoryResponse.model_validate(saved_category)
+        return category_schemas.CategoryResponse(
+            id=saved_category.id,
+            name=saved_category.name,
+            color=saved_category.color,
+            isDefault=saved_category.is_default
+        )
 
     def update_category(self, category_id: int, request: category_schemas.CategoryUpdate, username: str) -> category_schemas.CategoryResponse:
         user = user_crud.get_user_by_email_or_phone(self.db, username)
@@ -64,7 +77,12 @@ class CategoryService:
         category.name = request.name
         category.color = request.color
         updated_category = category_crud.save(self.db, category)
-        return category_schemas.CategoryResponse.model_validate(updated_category)
+        return category_schemas.CategoryResponse(
+            id=updated_category.id,
+            name=updated_category.name,
+            color=updated_category.color,
+            isDefault=updated_category.is_default
+        )
 
     def delete_category(self, category_id: int, username: str) -> None:
         user = user_crud.get_user_by_email_or_phone(self.db, username)

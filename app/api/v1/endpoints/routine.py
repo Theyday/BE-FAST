@@ -9,23 +9,25 @@ from app.services.routine_service import RoutineService, CustomException
 
 router = APIRouter()
 
-@router.post("/", response_model=ApiResponse[None])
+@router.post("", response_model=ApiResponse[None])
 def create_routine(
     request: RoutineCreateRequest,
     routine_service: Annotated[RoutineService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
     routine_service.create_routine(request, username)
     return ApiResponse(message="루틴을 생성하였습니다.", data=None)
 
 @router.put("/{routine_id}", response_model=ApiResponse[None])
 def update_routine(
-    routine_id: Annotated[int, Path(ge=1, alias="routineId")],
+    routine_id: Annotated[int, Path(ge=1)],
     request: RoutineCreateRequest,
     routine_service: Annotated[RoutineService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
     routine_service.update_routine(routine_id, request, username)
     return ApiResponse(message="루틴을 수정하였습니다.", data=None)
@@ -53,10 +55,11 @@ def get_routine(
 
 @router.delete("/{routine_id}", response_model=ApiResponse[None])
 def delete_routine(
-    routine_id: Annotated[int, Path(ge=1, alias="routineId")],
+    routine_id: Annotated[int, Path(ge=1)],
     routine_service: Annotated[RoutineService, Depends()],
     Authorize: AuthJWT = Depends()
 ):
+    Authorize.jwt_required()
     username = Authorize.get_jwt_subject()
     routine_service.delete_routine(routine_id, username)
     return ApiResponse(message="루틴을 삭제하였습니다.", data=None)

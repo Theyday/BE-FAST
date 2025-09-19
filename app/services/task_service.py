@@ -44,7 +44,12 @@ class TaskService:
         if not participant:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Participant not found")
         
-        category_response = CategoryResponse.model_validate(participant.category) if participant.category else None
+        category_response = CategoryResponse(
+            id=participant.category.id,
+            name=participant.category.name,
+            color=participant.category.color,
+            isDefault=participant.category.is_default
+        )
 
         alerts = alert_crud.find_by_participant(self.db, participant)
         task_schedule_alert = next((a.minutes_before for a in alerts if a.type == AlertType.TASK_SCHEDULE), None)
@@ -52,9 +57,9 @@ class TaskService:
         task_end_alert = next((a.minutes_before for a in alerts if a.type == AlertType.TASK_END), None)
 
         task_alert_response = TaskAlertResponse(
-            task_schedule=task_schedule_alert,
-            task_start=task_start_alert,
-            task_end=task_end_alert
+            taskSchedule=task_schedule_alert,
+            taskStart=task_start_alert,
+            taskEnd=task_end_alert
         )
 
         return task_schemas.TaskDetailResponse(
@@ -63,10 +68,10 @@ class TaskService:
             name=task.name,
             description=task.description,
             location=task.location,
-            start_time=task.start_time,
-            end_time=task.end_time,
-            scheduled_time=task.scheduled_time,
-            is_completed=task.is_completed,
+            startTime=task.start_time,
+            endTime=task.end_time,
+            scheduledTime=task.scheduled_time,
+            isCompleted=task.is_completed,
             visibility=task.visibility,
             category=category_response,
             alert=task_alert_response
@@ -126,7 +131,7 @@ class TaskService:
             ))
 
     def delete_task(self, task_id: int, username: str) -> None:
-        task = task_crud.get_task_by_id_with_category(self.db, task_id, user_models.User(id=username)) # Fetch with user context for owner check
+        task = task_crud.get_task_by_id(self.db, task_id)
         if not task:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
