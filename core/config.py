@@ -1,7 +1,8 @@
 from functools import lru_cache
-from pydantic import BaseSettings, BaseModel
 from dotenv import load_dotenv
 from datetime import timedelta # Import timedelta
+from pydantic_settings import BaseSettings
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -51,6 +52,9 @@ class BaseConfig(BaseSettings):
     # REDIS settings
     REDIS_HOST: str
     REDIS_PORT: int
+
+    # AI Settings
+    GEMINI_API_KEY: str = "AIzaSyAnfacRrIr_LEx9vBPl1BguDTVHgrGIrjs"
 
 # --- local 프로파일 설정 ---
 class LocalConfig(BaseConfig):

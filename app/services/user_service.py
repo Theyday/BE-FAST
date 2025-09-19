@@ -5,10 +5,11 @@ from typing import Optional
 
 from fastapi import Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
-from fastapi_jwt_auth import AuthJWT
+from sqlalchemy.ext.asyncio import AsyncSession # AsyncSession 임포트
 
 from core.config import settings
-from model.database import get_db
+from core.jwt_security import create_access_token, create_refresh_token # JWT 헬퍼 함수 임포트
+from model.database import get_async_session # 비동기 세션 임포트
 from model.user.crud import user_crud, user_device_token_crud
 from model.category.crud import category_crud
 from model.schedule.routine.crud import routine_crud
@@ -25,28 +26,26 @@ class CustomException(HTTPException):
 class UserService:
     def __init__(
         self, 
-        db: Session = Depends(get_db),
+        db: AsyncSession = Depends(get_async_session), # AsyncSession 사용
         mail_service: MailService = Depends(),
         sms_service: SmsService = Depends(),
         redis_client: redis.Redis = Depends(lambda: redis.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT, db=0)),
-        Authorize: AuthJWT = Depends()
     ):
         self.db = db
         self.mail_service = mail_service
         self.sms_service = sms_service
         self.redis_client = redis_client
-        self.Authorize = Authorize
 
-    def _create_verification_code(self) -> str:
+    async def _create_verification_code(self) -> str:
         return str(random.randint(100000, 999999))
 
-    def _load_user_by_username(self, username: str) -> user_models.User:
-        user = user_crud.get_user_by_email_or_phone(self.db, username)
+    async def _load_user_by_id(self, user_id: int) -> user_models.User:
+        user = await user_crud.get_user_by_id(self.db, user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         return user
 
-    def send_code(self, value: str) -> bool:
+    async def send_code(self, value: str) -> bool:
         if value == "01062013110":  # Hardcoded test number
             self.redis_client.setex(
                 f"verification:{value}",
@@ -56,10 +55,10 @@ class UserService:
             return True
 
         is_exist = False
-        verification_code = self._create_verification_code()
+        verification_code = await self._create_verification_code()
         
         if "@" in value:
-            is_exist = user_crud.exists_by_email(self.db, value)
+            is_exist = await user_crud.exists_by_email(self.db, value)
             self.redis_client.setex(
                 f"verification:{value}",
                 timedelta(minutes=settings.EMAIL_VERIFICATION_EXPIRATION),
@@ -67,7 +66,7 @@ class UserService:
             )
             self.mail_service.send_simple_mail_message(value, verification_code, is_exist)
         else:
-            is_exist = user_crud.exists_by_phone(self.db, value)
+            is_exist = await user_crud.exists_by_phone(self.db, value)
             self.redis_client.setex(
                 f"verification:{value}",
                 timedelta(minutes=settings.PHONE_VERIFICATION_EXPIRATION),
@@ -79,7 +78,7 @@ class UserService:
                 raise CustomException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="SMS send failed") from e
         return is_exist
 
-    def verify_code(self, value: str, code: str) -> bool:
+    async def verify_code(self, value: str, code: str) -> bool:
         stored_code = self.redis_client.get(f"verification:{value}")
         if stored_code is None or stored_code.decode("utf-8") != code:
             return False
@@ -87,62 +86,60 @@ class UserService:
         self.redis_client.delete(f"verification:{value}")
         return True
 
-    def sign_in(self, value: str, code: str) -> user_schemas.TokenResponse:
-        if not self.verify_code(value, code):
+    async def sign_in(self, value: str, code: str) -> user_schemas.TokenResponse:
+        if not await self.verify_code(value, code):
             raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code")
         
-        user = user_crud.get_user_by_email_or_phone(self.db, value)
+        user = await user_crud.get_user_by_email_or_phone(self.db, value)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found in login")
 
-        # Generate JWT tokens
-        identity = user.email if user.email else user.phone
-        access_token = self.Authorize.create_access_token(subject=identity)
-        refresh_token = self.Authorize.create_refresh_token(subject=identity)
+        identity = user.id
+        access_token = create_access_token(data={"sub": str(identity)})
+        refresh_token = create_refresh_token(data={"sub": str(identity)})
 
         return user_schemas.TokenResponse(accessToken=access_token, refreshToken=refresh_token)
 
-    def sign_up(self, request: user_schemas.SignUpRequest) -> user_schemas.TokenResponse:
+    async def sign_up(self, request: user_schemas.SignUpRequest) -> user_schemas.TokenResponse:
         if len(request.name) > 10:
             raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid name length")
         
-        user = user_crud.create_user(self.db, request)
+        user = await user_crud.create_user(self.db, request)
 
-        category_crud.create_default(self.db, user)
-        routine_crud.create_default_routines_for_user(self.db, user)
+        await category_crud.create_default(self.db, user)
+        await routine_crud.create_default_routines_for_user(self.db, user)
 
-        # Generate JWT tokens
-        identity = user.email if user.email else user.phone
-        access_token = self.Authorize.create_access_token(subject=identity)
-        refresh_token = self.Authorize.create_refresh_token(subject=identity)
+        identity = user.id 
+        access_token = create_access_token(data={"sub": str(identity)})
+        refresh_token = create_refresh_token(data={"sub": str(identity)})
         
         return user_schemas.TokenResponse(accessToken=access_token, refreshToken=refresh_token)
 
-    def refresh(self) -> user_schemas.TokenResponse:
+    async def refresh(self, current_user_id: int) -> user_schemas.TokenResponse:
         
-        current_user = self.Authorize.get_jwt_subject()
-        access_token = self.Authorize.create_access_token(subject=current_user)
-        refresh_token = self.Authorize.create_refresh_token(subject=current_user)
+        access_token = create_access_token(data={"sub": str(current_user_id)})
+        refresh_token = create_refresh_token(data={"sub": str(current_user_id)})
         return user_schemas.TokenResponse(accessToken=access_token, refreshToken=refresh_token)
 
-    def register_device_token(self, request: user_schemas.DeviceTokenRequest, user_id: Optional[int]) -> None:
-        device_token = user_device_token_crud.find_by_token(self.db, request.token)
+    async def register_device_token(self, request: user_schemas.DeviceTokenRequest, user_id: Optional[int]) -> None:
+        device_token = await user_device_token_crud.find_by_token(self.db, request.token)
 
         user = None
         if user_id:
-            user = user_crud.get_user_by_id(self.db, user_id)
+            user = await user_crud.get_user_by_id(self.db, user_id)
             if not user:
                 raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
         if device_token:
             device_token.user = user
-            user_device_token_crud.save_device_token(self.db, device_token)
+            await user_device_token_crud.save_device_token(self.db, device_token)
         else:
             new_device_token = user_device_token_models.UserDeviceToken(
                 user_id=user_id if user_id else None,
                 token=request.token
             )
-            user_device_token_crud.save_device_token(self.db, new_device_token)
+            await user_device_token_crud.save_device_token(self.db, new_device_token)
 
-    def delete_device_token(self, token: str) -> None:
-        user_device_token_crud.delete_by_token(self.db, token)
+    async def delete_device_token(self, token: str, user_id: int) -> None:
+        # user_id를 사용하여 특정 사용자의 디바이스 토큰만 삭제하도록 변경
+        await user_device_token_crud.delete_by_token(self.db, token, user_id)

@@ -1,10 +1,9 @@
-from datetime import date, time, datetime
-from typing import List, Union, Optional
+from datetime import date
 
 from fastapi import Depends, HTTPException, status
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from model.database import get_db
+from model.database import get_async_session
 from model.user.crud import user_crud
 from model.schedule.task.crud import task_crud
 from model.schedule.participant.crud import participant_crud
@@ -27,16 +26,16 @@ class CustomException(HTTPException):
 class TaskService:
     def __init__(
         self, 
-        db: Session = Depends(get_db),
+        db: AsyncSession = Depends(get_async_session),
     ):
         self.db = db
 
-    def get_task_detail(self, task_id: int, username: str) -> task_schemas.TaskDetailResponse:
-        user = user_crud.get_user_by_email_or_phone(self.db, username)
+    async def get_task_detail(self, task_id: int, current_user_id: int) -> task_schemas.TaskDetailResponse:
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        task = task_crud.get_task_by_id_with_category(self.db, task_id, user)
+        task = await task_crud.get_task_by_id_with_category(self.db, task_id, user)
         if not task:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
         
@@ -51,7 +50,7 @@ class TaskService:
             isDefault=participant.category.is_default
         )
 
-        alerts = alert_crud.find_by_participant(self.db, participant)
+        alerts = await alert_crud.find_by_participant(self.db, participant)
         task_schedule_alert = next((a.minutes_before for a in alerts if a.type == AlertType.TASK_SCHEDULE), None)
         task_start_alert = next((a.minutes_before for a in alerts if a.type == AlertType.TASK_START), None)
         task_end_alert = next((a.minutes_before for a in alerts if a.type == AlertType.TASK_END), None)
@@ -77,8 +76,8 @@ class TaskService:
             alert=task_alert_response
         )
 
-    def edit_task(self, task_id: int, request: task_schemas.TaskEditRequest, username: str) -> None:
-        task = task_crud.get_task_by_id(self.db, task_id)
+    async def edit_task(self, task_id: int, request: task_schemas.TaskEditRequest, current_user_id: int) -> None:
+        task = await task_crud.get_task_by_id(self.db, task_id)
         if not task:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
         
@@ -89,53 +88,53 @@ class TaskService:
         task.start_time = request.start_time
         task.end_time = request.end_time
         task.description = request.description
-        task_crud.save(self.db, task) # Save task changes
+        await task_crud.save(self.db, task) # Save task changes
 
-        user = user_crud.get_user_by_email_or_phone(self.db, username)
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        participant = participant_crud.find_by_task_and_participant(self.db, task, user)
+        participant = await participant_crud.find_by_task_and_participant(self.db, task, user)
         if not participant:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Participant not found")
 
         # Update category
-        category = self.db.query(category_models.Category).filter(
+        category = await self.db.query(category_models.Category).filter(
             category_models.Category.id == request.category_id
         ).first()
         if not category:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
         participant.category = category
-        participant_crud.save(self.db, participant)
+        await participant_crud.save(self.db, participant)
 
         # Update alerts
-        alert_crud.delete_by_participant(self.db, participant)
+        await alert_crud.delete_by_participant(self.db, participant)
 
         if request.alert and request.alert.task_schedule is not None:
-            alert_crud.save(self.db, alert_models.Alert(
+            await alert_crud.save(self.db, alert_models.Alert(
                 participant_id=participant.id,
                 type=AlertType.TASK_SCHEDULE,
                 minutes_before=request.alert.task_schedule
             ))
         if request.alert and request.alert.task_start is not None:
-            alert_crud.save(self.db, alert_models.Alert(
+            await alert_crud.save(self.db, alert_models.Alert(
                 participant_id=participant.id,
                 type=AlertType.TASK_START,
                 minutes_before=request.alert.task_start
             ))
         if request.alert and request.alert.task_end is not None:
-            alert_crud.save(self.db, alert_models.Alert(
+            await alert_crud.save(self.db, alert_models.Alert(
                 participant_id=participant.id,
                 type=AlertType.TASK_END,
                 minutes_before=request.alert.task_end
             ))
 
-    def delete_task(self, task_id: int, username: str) -> None:
-        task = task_crud.get_task_by_id(self.db, task_id)
+    async def delete_task(self, task_id: int, current_user_id: int) -> None:
+        task = await task_crud.get_task_by_id(self.db, task_id)
         if not task:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
-        user = user_crud.get_user_by_email_or_phone(self.db, username)
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
@@ -145,18 +144,18 @@ class TaskService:
 
         # Deleting task will cascade delete participants and alerts if cascade is set in models.
         # If not, you need to manually delete participants and alerts first.
-        task_crud.delete(self.db, task)
+        await task_crud.delete(self.db, task)
 
-    def schedule_task(self, task_id: int, request: task_schemas.ScheduleTaskRequest, username: str) -> None:
-        task = task_crud.get_task_by_id(self.db, task_id)
+    async def schedule_task(self, task_id: int, request: task_schemas.ScheduleTaskRequest, current_user_id: int) -> None:
+        task = await task_crud.get_task_by_id(self.db, task_id)
         if not task:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
         
         task.scheduled_time = request.scheduled_time
-        task_crud.save(self.db, task)
+        await task_crud.save(self.db, task)
 
-    def toggle_task_complete(self, task_id: int, complete_date: date, username: str) -> None:
-        task = task_crud.get_task_by_id(self.db, task_id)
+    async def toggle_task_complete(self, task_id: int, complete_date: date, current_user_id: int) -> None:
+        task = await task_crud.get_task_by_id(self.db, task_id)
         if not task:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
         
@@ -166,4 +165,4 @@ class TaskService:
         else:
             task.completed_at = complete_date
             task.is_completed = True
-        task_crud.save(self.db, task)
+        await task_crud.save(self.db, task)

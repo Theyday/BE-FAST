@@ -1,9 +1,9 @@
 from typing import List, Optional
 
 from fastapi import Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from model.database import get_db
+from model.database import get_async_session
 from model.user.crud import user_crud
 from model.category.crud import category_crud
 from model.schedule.participant.crud import participant_crud
@@ -18,8 +18,8 @@ class CustomException(HTTPException):
 class CategoryService:
     def __init__(
         self, 
-        db: Session = Depends(get_db),
-    ):
+        db: AsyncSession = Depends(get_async_session),
+        ):
         self.db = db
 
     def get_my_categories(self, username: str) -> List[category_schemas.CategoryResponse]:

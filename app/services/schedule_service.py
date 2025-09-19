@@ -2,9 +2,9 @@ from datetime import date, datetime, time
 from typing import List, Union, Optional
 
 from fastapi import Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from model.database import get_db
+from model.database import get_async_session
 from model.user.crud import user_crud
 from model.schedule.event.crud import event_crud
 from model.schedule.task.crud import task_crud
@@ -24,18 +24,18 @@ class CustomException(HTTPException):
 class ScheduleService:
     def __init__(
         self, 
-        db: Session = Depends(get_db),
-    ):
+        db: AsyncSession = Depends(get_async_session),
+        ):
         self.db = db
 
-    def get_calendar_items_by_range(self, start_date: date, end_date: date, username: str) -> List[CalendarItemDto]:
-        user = user_crud.get_user_by_email_or_phone(self.db, username)
+    async def get_calendar_items_by_range(self, start_date: date, end_date: date, current_user_id: int) -> List[CalendarItemDto]:
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
         items = []
         # Fetch events
-        events = event_crud.find_by_participant_and_range(self.db, user, start_date, end_date)
+        events = await event_crud.find_by_participant_and_range(self.db, user, start_date, end_date)
         for event in events:
             color = "#CCCCCC"  # 기본값
             for participant in event.participants:
@@ -56,7 +56,7 @@ class ScheduleService:
                 isScheduled=event.start_time is not None or event.end_time is not None # If there's any time, it's scheduled
             ))
         
-        uncompleted_tasks = task_crud.find_uncompleted_tasks_by_participant_and_range(self.db, user, start_date, end_date)
+        uncompleted_tasks = await task_crud.find_uncompleted_tasks_by_participant_and_range(self.db, user, start_date, end_date)
         for task in uncompleted_tasks:
             color = "#CCCCCC"
             for participant in task.participants:
@@ -105,7 +105,7 @@ class ScheduleService:
                 isScheduled=task.scheduled_time is not None
             ))
 
-        completed_tasks = task_crud.find_completed_tasks_by_participant_and_range(self.db, user, start_date, end_date)
+        completed_tasks = await task_crud.find_completed_tasks_by_participant_and_range(self.db, user, start_date, end_date)
         for task in completed_tasks:
             color = "#CCCCCC"
             for participant in task.participants:
@@ -139,17 +139,17 @@ class ScheduleService:
             return participant.category.color
         return "#000000" # Default color if not found
 
-    def change_schedule_type(self, schedule_id: int, current_type: ScheduleType, username: str) -> Union[dict, None]:
-        user = user_crud.get_user_by_email_or_phone(self.db, username)
+    async def change_schedule_type(self, schedule_id: int, current_type: ScheduleType, username: str) -> Union[dict, None]:
+        user = await user_crud.get_user_by_email_or_phone(self.db, username)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
         if current_type == ScheduleType.EVENT: # Event -> Task
-            event = event_crud.get_event_by_id(self.db, schedule_id)
+            event = await event_crud.get_event_by_id(self.db, schedule_id)
             if not event:
                 raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule not found")
             
-            participant = participant_crud.find_by_event_and_participant(self.db, event, user)
+            participant = await participant_crud.find_by_event_and_participant(self.db, event, user)
             if not participant:
                 raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Participant not found")
             
@@ -177,14 +177,14 @@ class ScheduleService:
                 source_text=event.source_text,
                 visibility=event.visibility
             )
-            task_crud.save(self.db, new_task)
+            await task_crud.save(self.db, new_task)
 
             participant.event = None
             participant.task = new_task
             # participant.category remains the same
-            participant_crud.save(self.db, participant)
+            await participant_crud.save(self.db, participant)
 
-            event_crud.delete(self.db, event)
+            await event_crud.delete(self.db, event)
 
             # Return TaskDto.TaskResponse.of(task, participant.getCategory().getColor());
             # This requires a new TaskResponse schema and a way to get category color
@@ -192,11 +192,11 @@ class ScheduleService:
             return {"id": new_task.id, "type": ScheduleType.TASK.value, "name": new_task.name, "color": color}
 
         elif current_type == ScheduleType.TASK: # Task -> Event
-            task = task_crud.get_task_by_id(self.db, schedule_id)
+            task = await task_crud.get_task_by_id(self.db, schedule_id)
             if not task:
                 raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Schedule not found")
             
-            participant = participant_crud.find_by_task_and_participant(self.db, task, user)
+            participant = await participant_crud.find_by_task_and_participant(self.db, task, user)
             if not participant:
                 raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Participant not found")
             
@@ -243,14 +243,14 @@ class ScheduleService:
                 source_text=task.source_text,
                 visibility=task.visibility
             )
-            event_crud.save(self.db, new_event)
+            await event_crud.save(self.db, new_event)
 
             participant.event = new_event
             participant.task = None
             # participant.category remains the same
-            participant_crud.save(self.db, participant)
+            await participant_crud.save(self.db, participant)
 
-            task_crud.delete(self.db, task)
+            await task_crud.delete(self.db, task)
 
             # Return EventDto.EventResponse.of(event, participant.getCategory().getColor());
             # This requires a new EventResponse schema and a way to get category color

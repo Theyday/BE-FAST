@@ -1,46 +1,56 @@
 from typing import List, Optional
 from datetime import date
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
 from . import models
 from model.user import models as user_models
 from model.schedule.participant import models as participant_models
 
 class EventCRUD:
-    def find_by_participant_and_range(self, db: Session, user: user_models.User, start_date: date, end_date: date) -> List[models.Event]:
-        return (
-            db.query(models.Event)
+    async def find_by_participant_and_range(
+        self, db: AsyncSession, user: user_models.User, start_date: date, end_date: date
+    ) -> List[models.Event]:
+        stmt = (
+            select(models.Event)
             .join(models.Event.participants)
             .join(participant_models.Participant.category)
-            .filter(participant_models.Participant.user_id == user.id)
-            .filter(models.Event.start_date <= end_date)
-            .filter(models.Event.end_date >= start_date)
+            .where(participant_models.Participant.user_id == user.id)
+            .where(models.Event.start_date <= end_date)
+            .where(models.Event.end_date >= start_date)
             .options(
                 joinedload(models.Event.participants).joinedload(participant_models.Participant.category)
             )
-            .all()
         )
+        result = await db.execute(stmt)
+        return result.scalars().unique().all()
 
-    def get_event_by_id(self, db: Session, event_id: int) -> Optional[models.Event]:
-        return db.query(models.Event).filter(models.Event.id == event_id).first()
+    async def get_event_by_id(self, db: AsyncSession, event_id: int) -> Optional[models.Event]:
+        stmt = select(models.Event).where(models.Event.id == event_id)
+        result = await db.execute(stmt)
+        return result.scalars().first()
 
-    def get_event_by_id_with_category(self, db: Session, event_id: int, user: user_models.User) -> Optional[models.Event]:
-        return (
-            db.query(models.Event)
+    async def get_event_by_id_with_category(
+        self, db: AsyncSession, event_id: int, user: user_models.User
+    ) -> Optional[models.Event]:
+        stmt = (
+            select(models.Event)
             .options(joinedload(models.Event.participants).joinedload(participant_models.Participant.category))
-            .filter(models.Event.id == event_id)
-            .filter(models.Event.participants.any(user_id=user.id))
-            .first()
+            .where(models.Event.id == event_id)
+            .where(models.Event.participants.any(user_id=user.id))
         )
+        result = await db.execute(stmt)
+        return result.scalars().first()
 
-    def save(self, db: Session, event: models.Event) -> models.Event:
+    async def save(self, db: AsyncSession, event: models.Event) -> models.Event:
         db.add(event)
-        db.commit()
-        db.refresh(event)
+        await db.commit()
+        await db.refresh(event)
         return event
-    
-    def delete(self, db: Session, event: models.Event) -> None:
-        db.delete(event)
-        db.commit()
+
+    async def delete(self, db: AsyncSession, event: models.Event) -> None:
+        await db.delete(event)
+        await db.commit()
 
 event_crud = EventCRUD()

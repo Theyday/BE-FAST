@@ -1,7 +1,6 @@
 from sqlalchemy import Column, BigInteger, String, Date, Time, Enum
 from sqlalchemy.orm import relationship
 
-from ...database import Base
 from ..visibility import Visibility
 from ...base_time_model import BaseTimeModel
 

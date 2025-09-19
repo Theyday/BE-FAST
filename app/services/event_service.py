@@ -1,19 +1,13 @@
-from datetime import date, time, datetime
-from typing import List, Union, Optional
-
 from fastapi import Depends, HTTPException, status
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from model.database import get_db
+from model.database import get_async_session
 from model.user.crud import user_crud
 from model.schedule.event.crud import event_crud
 from model.schedule.participant.crud import participant_crud
 from model.schedule.alert.crud import alert_crud
-from model.user import models as user_models
 from model.category import models as category_models
 from model.schedule.alert import models as alert_models
-from model.schedule.event import models as event_models
-from model.schedule.participant import models as participant_models
 from model.schedule.event import schemas as event_schemas
 from model.schedule.alert.schemas import EventAlertResponse
 from model.category.schemas import CategoryResponse
@@ -26,12 +20,12 @@ class CustomException(HTTPException):
 class EventService:
     def __init__(
         self, 
-        db: Session = Depends(get_db),
+        db: AsyncSession = Depends(get_async_session),
     ):
         self.db = db
 
-    def get_event_detail(self, event_id: int, username: str) -> event_schemas.EventDetailResponse:
-        user = user_crud.get_user_by_email_or_phone(self.db, username)
+    async def get_event_detail(self, event_id: int, current_user_id: int) -> event_schemas.EventDetailResponse:
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 

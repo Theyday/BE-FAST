@@ -1,7 +1,6 @@
 from sqlalchemy import Column, BigInteger, String, ForeignKey
 from sqlalchemy.orm import relationship
 
-from ...database import Base
 from ...base_time_model import BaseTimeModel
 
 class Participant(BaseTimeModel):

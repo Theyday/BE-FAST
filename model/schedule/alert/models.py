@@ -1,7 +1,6 @@
 from sqlalchemy import Column, BigInteger, Integer, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 
-from ...database import Base
 from .alert_type import AlertType
 from ...base_time_model import BaseTimeModel
 
