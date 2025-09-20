@@ -27,7 +27,11 @@ class EventCRUD:
         return result.scalars().unique().all()
 
     async def get_event_by_id(self, db: AsyncSession, event_id: int) -> Optional[models.Event]:
-        stmt = select(models.Event).where(models.Event.id == event_id)
+        stmt = (
+            select(models.Event)
+            .options(joinedload(models.Event.participants).joinedload(participant_models.Participant.category))
+            .where(models.Event.id == event_id)
+        )
         result = await db.execute(stmt)
         return result.scalars().first()
 

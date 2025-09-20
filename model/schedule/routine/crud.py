@@ -20,7 +20,9 @@ class RoutineCRUD:
 
     async def get_routine_by_id(self, db: AsyncSession, routine_id: int) -> Optional[models.Routine]:
         result = await db.execute(
-            select(models.Routine).where(models.Routine.id == routine_id)
+            select(models.Routine)
+            .options(joinedload(models.Routine.alerts))
+            .where(models.Routine.id == routine_id)
         )
         return result.scalars().first()
 

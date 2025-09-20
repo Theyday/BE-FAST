@@ -22,14 +22,14 @@ class CategoryService:
         ):
         self.db = db
 
-    def get_my_categories(self, username: str) -> List[category_schemas.CategoryResponse]:
-        user = user_crud.get_user_by_email_or_phone(self.db, username)
+    async def get_my_categories(self, current_user_id: int) -> List[category_schemas.CategoryResponse]:
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
         # In Spring Boot, it was `findByUserOrderByRecentActivity`, which implies a custom ordering logic.
         # For now, let's just get by user and then sort in Python. Actual `recentActivity` would need to be tracked.
-        categories = category_crud.find_by_user_order_by_created(self.db, user)
+        categories = await category_crud.find_by_user_order_by_created(self.db, user)
 
         sorted_categories = sorted(categories, key=lambda c: (not c.is_default, c.id))
 
@@ -43,8 +43,8 @@ class CategoryService:
             ))
         return result
 
-    def create_category(self, request: category_schemas.CategoryCreate, username: str) -> category_schemas.CategoryResponse:
-        user = user_crud.get_user_by_email_or_phone(self.db, username)
+    async def create_category(self, request: category_schemas.CategoryCreate, current_user_id: int) -> category_schemas.CategoryResponse:
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
@@ -54,7 +54,7 @@ class CategoryService:
             user_id=user.id,
             is_default=False
         )
-        saved_category = category_crud.save(self.db, category)
+        saved_category = await category_crud.save(self.db, category)
         return category_schemas.CategoryResponse(
             id=saved_category.id,
             name=saved_category.name,
@@ -62,21 +62,18 @@ class CategoryService:
             isDefault=saved_category.is_default
         )
 
-    def update_category(self, category_id: int, request: category_schemas.CategoryUpdate, username: str) -> category_schemas.CategoryResponse:
-        user = user_crud.get_user_by_email_or_phone(self.db, username)
+    async def update_category(self, category_id: int, request: category_schemas.CategoryUpdate, current_user_id: int) -> category_schemas.CategoryResponse:
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        category = self.db.query(category_models.Category).filter(
-            category_models.Category.id == category_id, 
-            category_models.Category.user_id == user.id
-        ).first()
+        category = await category_crud.find_by_id_and_user(self.db, category_id, user)
         if not category:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
         
         category.name = request.name
         category.color = request.color
-        updated_category = category_crud.save(self.db, category)
+        updated_category = await category_crud.save(self.db, category)
         return category_schemas.CategoryResponse(
             id=updated_category.id,
             name=updated_category.name,
@@ -84,34 +81,27 @@ class CategoryService:
             isDefault=updated_category.is_default
         )
 
-    def delete_category(self, category_id: int, username: str) -> None:
-        user = user_crud.get_user_by_email_or_phone(self.db, username)
+    async def delete_category(self, category_id: int, current_user_id: int) -> None:
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        category_to_delete = self.db.query(category_models.Category).filter(
-            category_models.Category.id == category_id, 
-            category_models.Category.user_id == user.id
-        ).first()
+        category_to_delete = await category_crud.find_by_id_and_user(self.db, category_id, user)
         if not category_to_delete:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
 
         # Find default category
-        default_category = self.find_default_category(user)
+        default_category = await self.find_default_category(user)
         if default_category is None: # Should not happen if createDefault is called on user creation
             raise CustomException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Default category not found")
 
         # Reassign participants to default category
-        participants_to_reassign = participant_crud.find_by_category(self.db, category_to_delete)
+        participants_to_reassign = await participant_crud.find_by_category(self.db, category_to_delete)
         for participant in participants_to_reassign:
             participant.category = default_category
-            participant_crud.save(self.db, participant)
+            await participant_crud.save(self.db, participant)
 
-        self.db.delete(category_to_delete)
-        self.db.commit()
+        await category_crud.delete(self.db, category_to_delete)
 
-    def find_default_category(self, user: user_models.User) -> Optional[category_models.Category]:
-        return self.db.query(category_models.Category).filter(
-            category_models.Category.user_id == user.id,
-            category_models.Category.is_default == True
-        ).first()
+    async def find_default_category(self, user: user_models.User) -> Optional[category_models.Category]:
+        return await category_crud.find_default_category(self.db, user)

@@ -17,6 +17,6 @@ class Task(BaseTimeModel):
     is_completed = Column(Boolean, nullable=False)
     completed_at = Column(Date, nullable=True)
     source_text = Column(String(500), nullable=True)
-    visibility = Column(Enum(Visibility), nullable=False)
+    visibility = Column(String(20), nullable=False)
 
     participants = relationship("Participant", back_populates="task")

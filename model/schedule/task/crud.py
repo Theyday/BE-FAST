@@ -62,7 +62,11 @@ class TaskCRUD:
 
     async def get_task_by_id(self, db: AsyncSession, task_id: int) -> Optional[models.Task]:
         """ID로 Task 조회"""
-        stmt = select(models.Task).filter(models.Task.id == task_id)
+        stmt = (
+            select(models.Task)
+            .options(joinedload(models.Task.participants).joinedload(participant_models.Participant.category))
+            .where(models.Task.id == task_id)
+        )
         result = await db.execute(stmt)
         return result.scalars().first()
 

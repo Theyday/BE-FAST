@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from model.category.crud import category_crud
 from model.database import get_async_session
 from model.user.crud import user_crud
 from model.schedule.event.crud import event_crud
@@ -29,7 +30,7 @@ class EventService:
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        event = event_crud.get_event_by_id_with_category(self.db, event_id, user)
+        event = await event_crud.get_event_by_id_with_category(self.db, event_id, user)
         if not event:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
         
@@ -44,7 +45,7 @@ class EventService:
             isDefault=participant.category.is_default
         )
 
-        alerts = alert_crud.find_by_participant(self.db, participant)
+        alerts = await alert_crud.find_by_participant(self.db, participant)
         event_start_alert = next((a.minutes_before for a in alerts if a.type == AlertType.EVENT_START), None)
         event_end_alert = next((a.minutes_before for a in alerts if a.type == AlertType.EVENT_END), None)
 
@@ -68,8 +69,8 @@ class EventService:
             alert=event_alert_response
         )
 
-    def edit_event(self, event_id: int, request: event_schemas.EventEditRequest, username: str) -> None:
-        event = event_crud.get_event_by_id(self.db, event_id)
+    async def edit_event(self, event_id: int, request: event_schemas.EventEditRequest, current_user_id: int) -> None:
+        event = await event_crud.get_event_by_id(self.db, event_id)
         if not event:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
         
@@ -80,47 +81,45 @@ class EventService:
         event.start_time = request.start_time
         event.end_time = request.end_time
         event.description = request.description
-        event_crud.save(self.db, event)
+        await event_crud.save(self.db, event)
 
-        user = user_crud.get_user_by_email_or_phone(self.db, username)
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        participant = participant_crud.find_by_event_and_participant(self.db, event, user)
+        participant = await participant_crud.find_by_event_and_participant(self.db, event, user)
         if not participant:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Participant not found")
 
         # Update category
-        category = self.db.query(category_models.Category).filter(
-            category_models.Category.id == request.category_id
-        ).first()
+        category = await category_crud.find_by_id_and_user(self.db, request.category_id, user)
         if not category:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
         participant.category = category
-        participant_crud.save(self.db, participant)
+        await participant_crud.save(self.db, participant)
 
         # Update alerts
-        alert_crud.delete_by_participant(self.db, participant)
+        await alert_crud.delete_by_participant(self.db, participant)
 
         if request.alert and request.alert.event_start is not None:
-            alert_crud.save(self.db, alert_models.Alert(
+            await alert_crud.save(self.db, alert_models.Alert(
                 participant_id=participant.id,
                 type=AlertType.EVENT_START,
                 minutes_before=request.alert.event_start
             ))
         if request.alert and request.alert.event_end is not None:
-            alert_crud.save(self.db, alert_models.Alert(
+            await alert_crud.save(self.db, alert_models.Alert(
                 participant_id=participant.id,
                 type=AlertType.EVENT_END,
                 minutes_before=request.alert.event_end
             ))
 
-    def delete_event(self, event_id: int, username: str) -> None:
-        event = event_crud.get_event_by_id(self.db, event_id)
+    async def delete_event(self, event_id: int, current_user_id: int) -> None:
+        event = await event_crud.get_event_by_id(self.db, event_id)
         if not event:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Event not found")
 
-        user = user_crud.get_user_by_email_or_phone(self.db, username)
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
@@ -128,4 +127,4 @@ class EventService:
         if not is_owner:
             raise CustomException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden: User is not the owner of the event")
 
-        event_crud.delete(self.db, event)
+        await event_crud.delete(self.db, event)

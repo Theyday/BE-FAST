@@ -14,6 +14,7 @@ class CategoryInfo(BaseModel):
 
 class AIEventResponse(BaseModel):
     id: Optional[int] = None
+    type: str
     name: str
     location: Optional[str] = None
     start_date: date = Field(alias="startDate")
@@ -31,6 +32,7 @@ class AIEventResponse(BaseModel):
 
 class AITaskResponse(BaseModel):
     id: Optional[int] = None
+    type: str
     name: str
     location: Optional[str] = None
     start_time: Optional[datetime] = Field(None, alias="startTime")

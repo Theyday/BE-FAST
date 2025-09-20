@@ -2,6 +2,7 @@ from typing import List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
 from . import models
 from ...category import models as category_models
@@ -24,7 +25,8 @@ class ParticipantCRUD:
 
     async def find_by_event_and_participant(self, db: AsyncSession, event: event_models.Event, user: user_models.User) -> Optional[models.Participant]:
         result = await db.execute(
-            select(models.Participant).where(
+            select(models.Participant)
+            .where(
                 models.Participant.event_id == event.id,
                 models.Participant.user_id == user.id
             )
@@ -33,7 +35,8 @@ class ParticipantCRUD:
 
     async def find_by_task_and_participant(self, db: AsyncSession, task: task_models.Task, user: user_models.User) -> Optional[models.Participant]:
         result = await db.execute(
-            select(models.Participant).where(
+            select(models.Participant)
+            .where(
                 models.Participant.task_id == task.id,
                 models.Participant.user_id == user.id
             )

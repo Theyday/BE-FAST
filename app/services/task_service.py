@@ -3,6 +3,7 @@ from datetime import date
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from model.category.crud import category_crud
 from model.database import get_async_session
 from model.user.crud import user_crud
 from model.schedule.task.crud import task_crud
@@ -99,9 +100,7 @@ class TaskService:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Participant not found")
 
         # Update category
-        category = await self.db.query(category_models.Category).filter(
-            category_models.Category.id == request.category_id
-        ).first()
+        category = await category_crud.find_by_id_and_user(self.db, request.category_id, user)
         if not category:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
         participant.category = category

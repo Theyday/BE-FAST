@@ -17,7 +17,6 @@ class CategoryResponse(CategoryBase):
 
     class Config:
         from_attributes = True
-        orm_mode = True
 
 class CategoryResponseWithoutName(BaseModel):
     id: int

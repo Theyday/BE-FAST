@@ -1,9 +1,8 @@
 from sqlalchemy import Column, BigInteger, String, ForeignKey
 from sqlalchemy.orm import relationship
+from ...base_time_model import Base
 
-from ...base_time_model import BaseTimeModel
-
-class UserDeviceToken(BaseTimeModel):
+class UserDeviceToken(Base):
     __tablename__ = "user_device_token_tb"
 
     id = Column(BigInteger, primary_key=True, index=True)

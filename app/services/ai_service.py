@@ -1,12 +1,12 @@
 import json
 from datetime import date, datetime, time
-from typing import List, Dict, Any, Union, Optional
+from typing import List, Dict, Any, Union
 
 from google import genai
 from fastapi import Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from model.database import get_db
+from model.database import get_async_session
 from model.user.crud import user_crud
 from model.category.crud import category_crud
 from model.schedule.event.crud import event_crud
@@ -21,7 +21,7 @@ from model.schedule.alert import models as alert_models
 from model.schedule.visibility import Visibility
 from model.ai.schemas import (
     CreateFromTextRequest, CategoryInfo, AIEventResponse, 
-    AITaskResponse, AIResponse
+    AITaskResponse
 )
 from core.config import settings
 
@@ -32,28 +32,20 @@ class CustomException(HTTPException):
 
 
 class AiService:
-    def __init__(self, db: Session = Depends(get_db)):
+    def __init__(self, db: AsyncSession = Depends(get_async_session)):
         self.db = db
-        if settings.GEMINI_API_KEY:
-            # The user has provided a GEMINI_API_KEY in the config.
-            # The genai.Client() is expected to use the GEMINI_API_KEY environment variable.
-            # We assume the environment is configured correctly to expose this key.
-            # For example, by using a .env file that is loaded on startup.
-            genai.configure(api_key=settings.GEMINI_API_KEY)
-            self.client = genai.Client()
-        else:
-            self.client = None
+        self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
 
-    def create_from_text(self, request: CreateFromTextRequest, username: str) -> Union[AIEventResponse, AITaskResponse]:
+    async def create_from_text(self, request: CreateFromTextRequest, current_user_id: int) -> Union[AIEventResponse, AITaskResponse]:
         """텍스트로부터 EVENT 또는 TASK 생성 (인증된 사용자용)"""
-        user = user_crud.get_user_by_email_or_phone(self.db, username)
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        user_categories = category_crud.find_by_user_order_by_created(self.db, user)
+        user_categories = await category_crud.find_by_user_order_by_created(self.db, user)
         category_infos = [CategoryInfo(id=c.id, name=c.name) for c in user_categories]
 
-        parsed_result = self._parse_text_with_ai(request.text, category_infos)
+        parsed_result = await self._parse_text_with_ai(request.text, category_infos)
         
         if not parsed_result:
             raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="텍스트 분석에 실패했습니다")
@@ -61,17 +53,17 @@ class AiService:
         schedule_type = parsed_result.get("type", "").upper()
 
         if schedule_type == "EVENT":
-            return self._create_event_from_parsed_result(parsed_result, user, user_categories, request.text)
+            return await self._create_event_from_parsed_result(parsed_result, user, user_categories, request.text)
         elif schedule_type == "TASK":
-            return self._create_task_from_parsed_result(parsed_result, user, user_categories, request.text)
+            return await self._create_task_from_parsed_result(parsed_result, user, user_categories, request.text)
         else:
             raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="올바른 스케줄 타입을 인식하지 못했습니다")
 
-    def create_from_text_trial(self, request: CreateFromTextRequest) -> Union[AIEventResponse, AITaskResponse]:
+    async def create_from_text_trial(self, request: CreateFromTextRequest) -> Union[AIEventResponse, AITaskResponse]:
         """텍스트로부터 EVENT 또는 TASK 생성 (체험용)"""
         category_infos = [CategoryInfo(id=1, name="일정")]
 
-        parsed_result = self._parse_text_with_ai(request.text, category_infos)
+        parsed_result = await self._parse_text_with_ai(request.text, category_infos)
         
         if not parsed_result:
             raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="텍스트 분석에 실패했습니다")
@@ -103,7 +95,7 @@ class AiService:
         else:
             raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="올바른 스케줄 타입을 인식하지 못했습니다")
 
-    def _create_event_from_parsed_result(
+    async def _create_event_from_parsed_result(
         self, 
         result: Dict[str, Any], 
         user: user_models.User, 
@@ -126,7 +118,7 @@ class AiService:
             source_text=source_text
         )
 
-        event_crud.save(self.db, event)
+        await event_crud.save(self.db, event)
 
         participant = participant_models.Participant(
             user_id=user.id,
@@ -136,7 +128,7 @@ class AiService:
             status="ACCEPTED"
         )
 
-        participant_crud.save(self.db, participant)
+        await participant_crud.save(self.db, participant)
 
         alert = alert_models.Alert(
             participant_id=participant.id,
@@ -144,22 +136,23 @@ class AiService:
             minutes_before=0
         )
 
-        alert_crud.save(self.db, alert)
+        await alert_crud.save(self.db, alert)
 
         return AIEventResponse(
             id=event.id,
+            type="EVENT",
             name=event.name,
             location=event.location,
             start_date=event.start_date,
             end_date=event.end_date,
             start_time=event.start_time,
             end_time=event.end_time,
-            visibility=event.visibility.value,
+            visibility=event.visibility,
             source_text=event.source_text,
             color=category.color
         )
 
-    def _create_task_from_parsed_result(
+    async def _create_task_from_parsed_result(
         self, 
         result: Dict[str, Any], 
         user: user_models.User, 
@@ -182,7 +175,7 @@ class AiService:
             source_text=source_text
         )
 
-        task_crud.save(self.db, task)
+        await task_crud.save(self.db, task)
 
         participant = participant_models.Participant(
             user_id=user.id,
@@ -192,7 +185,7 @@ class AiService:
             status="ACCEPTED"
         )
 
-        participant_crud.save(self.db, participant)
+        await participant_crud.save(self.db, participant)
 
         if result.get("scheduledTime"):
             alert = alert_models.Alert(
@@ -200,22 +193,23 @@ class AiService:
                 type="TASK_SCHEDULE",
                 minutes_before=0
             )
-            alert_crud.save(self.db, alert)
+            await alert_crud.save(self.db, alert)
 
         return AITaskResponse(
             id=task.id,
+            type="TASK",
             name=task.name,
             location=task.location,
             start_time=task.start_time,
             end_time=task.end_time,
             scheduled_time=task.scheduled_time,
             is_completed=task.is_completed,
-            visibility=task.visibility.value,
+            visibility=task.visibility,
             source_text=task.source_text,
             color=category.color
         )
 
-    def _parse_text_with_ai(self, text: str, categories: List[CategoryInfo]) -> Dict[str, Any]:
+    async def _parse_text_with_ai(self, text: str, categories: List[CategoryInfo]) -> Dict[str, Any]:
         """AI를 사용하여 텍스트 파싱"""
         if not self.client:
             raise CustomException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="AI 서비스가 설정되지 않았습니다")
@@ -282,12 +276,11 @@ class AiService:
 
         try:
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-2.5-flash-lite",
                 contents=prompt,
-                generation_config={
-                    "temperature": 0.2,
-                }
-            )
+            )  
+                
+            
             raw_response = response.text
 
             # JSON 추출

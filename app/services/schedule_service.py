@@ -4,6 +4,7 @@ from typing import List, Union, Optional
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from model.ai.schemas import AIEventResponse, AITaskResponse
 from model.database import get_async_session
 from model.user.crud import user_crud
 from model.schedule.event.crud import event_crud
@@ -139,8 +140,8 @@ class ScheduleService:
             return participant.category.color
         return "#000000" # Default color if not found
 
-    async def change_schedule_type(self, schedule_id: int, current_type: ScheduleType, username: str) -> Union[dict, None]:
-        user = await user_crud.get_user_by_email_or_phone(self.db, username)
+    async def change_schedule_type(self, schedule_id: int, current_type: ScheduleType, current_user_id: int) -> Union[AIEventResponse, AITaskResponse]:
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         
@@ -177,6 +178,7 @@ class ScheduleService:
                 source_text=event.source_text,
                 visibility=event.visibility
             )
+
             await task_crud.save(self.db, new_task)
 
             participant.event = None
@@ -186,10 +188,21 @@ class ScheduleService:
 
             await event_crud.delete(self.db, event)
 
-            # Return TaskDto.TaskResponse.of(task, participant.getCategory().getColor());
-            # This requires a new TaskResponse schema and a way to get category color
-            color = self._get_category_color_from_participant(participant) # Assuming category is loaded with participant
-            return {"id": new_task.id, "type": ScheduleType.TASK.value, "name": new_task.name, "color": color}
+            color = self._get_category_color_from_participant(participant) 
+            
+            return AITaskResponse(
+                id=new_task.id,
+                type="TASK",
+                name=new_task.name,
+                location=new_task.location,
+                start_time=new_task.start_time,
+                end_time=new_task.end_time,
+                scheduled_time=new_task.scheduled_time,
+                is_completed=new_task.is_completed,
+                visibility=new_task.visibility,
+                source_text=new_task.source_text,
+                color=color
+            )
 
         elif current_type == ScheduleType.TASK: # Task -> Event
             task = await task_crud.get_task_by_id(self.db, schedule_id)
@@ -243,18 +256,30 @@ class ScheduleService:
                 source_text=task.source_text,
                 visibility=task.visibility
             )
+            
             await event_crud.save(self.db, new_event)
 
             participant.event = new_event
             participant.task = None
-            # participant.category remains the same
+            
             await participant_crud.save(self.db, participant)
 
             await task_crud.delete(self.db, task)
 
-            # Return EventDto.EventResponse.of(event, participant.getCategory().getColor());
-            # This requires a new EventResponse schema and a way to get category color
-            color = self._get_category_color_from_participant(participant) # Assuming category is loaded with participant
-            return {"id": new_event.id, "type": ScheduleType.EVENT.value, "name": new_event.name, "color": color}
+            color = self._get_category_color_from_participant(participant)
+            
+            return AIEventResponse(
+                id=new_event.id,
+                type="EVENT",
+                name=new_event.name,
+                location=new_event.location,
+                start_date=new_event.start_date,
+                end_date=new_event.end_date,
+                start_time=new_event.start_time,
+                end_time=new_event.end_time,
+                visibility=new_event.visibility,
+                source_text=new_event.source_text,
+                color=color
+            )
 
         return None

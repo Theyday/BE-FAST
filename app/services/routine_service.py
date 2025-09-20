@@ -98,6 +98,8 @@ class RoutineService:
         
         routines = await routine_crud.find_by_user_with_alerts(self.db, user)
 
+        
+
         response_routines = []
         for routine in routines:
             routine_start_alert = next((a.minutes_before for a in routine.alerts if a.type == AlertType.ROUTINE_START), None)

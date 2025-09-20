@@ -16,6 +16,5 @@ class Event(BaseTimeModel):
     start_time = Column(Time, nullable=True)
     end_time = Column(Time, nullable=True)
     source_text = Column(String(500), nullable=True)
-    visibility = Column(Enum(Visibility), nullable=False)
-
+    visibility = Column(String(20), nullable=False)
     participants = relationship("Participant", back_populates="event")

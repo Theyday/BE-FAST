@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query, Path
 from typing import Annotated, List, Union
 from datetime import date
 
+from model.ai.schemas import AIEventResponse, AITaskResponse
 from model.response_models import ApiResponse
 from model.schedule.schemas import CalendarItemDto, ScheduleType
 from app.services.schedule_service import ScheduleService
@@ -19,9 +20,9 @@ async def get_calendar_items_by_range(
     items = await schedule_service.get_calendar_items_by_range(start_date, end_date, current_user_id)
     return ApiResponse(message="기간 내 캘린더 데이터를 조회하였습니다.", data=items)
 
-@router.post("/{schedule_id}/type", response_model=ApiResponse[Union[dict, None]])
+@router.post("/{schedule_id}/type", response_model=ApiResponse[Union[AIEventResponse, AITaskResponse]])
 async def change_schedule_type(
-    schedule_id: Annotated[int, Path(ge=1, alias="scheduleId")],
+    schedule_id: Annotated[int, Path(ge=1)],
     current_type: Annotated[ScheduleType, Query(alias="currentType")],
     schedule_service: Annotated[ScheduleService, Depends()],
     current_user_id: int = Depends(get_current_user_id)
