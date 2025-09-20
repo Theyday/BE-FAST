@@ -59,15 +59,15 @@ jobs:
           fi
           echo CURRENT_UPSTREAM=$CURRENT_UPSTREAM >> $GITHUB_ENV
           if [ $CURRENT_UPSTREAM = blue ]; then
-            echo "CURRENT_PORT=8080" >> $GITHUB_ENV
-            echo "STOPPED_PORT=8081" >> $GITHUB_ENV
+            echo "CURRENT_PORT=8000" >> $GITHUB_ENV
+            echo "STOPPED_PORT=8001" >> $GITHUB_ENV
             echo "TARGET_UPSTREAM=green" >> $GITHUB_ENV
-            echo "🟦 [Theyday] 현재 blue(8080) → green(8081)로 배포"
+            echo "🟦 [Theyday] 현재 blue(8000) → green(8001)로 배포"
           elif [ $CURRENT_UPSTREAM = green ]; then
-            echo "CURRENT_PORT=8081" >> $GITHUB_ENV
-            echo "STOPPED_PORT=8080" >> $GITHUB_ENV
+            echo "CURRENT_PORT=8001" >> $GITHUB_ENV
+            echo "STOPPED_PORT=8000" >> $GITHUB_ENV
             echo "TARGET_UPSTREAM=blue" >> $GITHUB_ENV
-            echo "🟩 [Theyday] 현재 green(8081) → blue(8080)로 배포"
+            echo "🟩 [Theyday] 현재 green(8001) → blue(8000)로 배포"
           else
             echo "❌ [Theyday] error: 알 수 없는 CURRENT_UPSTREAM 값: $CURRENT_UPSTREAM"
             exit 1
