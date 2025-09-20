@@ -48,13 +48,10 @@ jobs:
     steps:
       - name: Set target IP
         run: |
-          # 이 로직은 FastAPI의 /env 엔드포인트와 완벽하게 호환되므로 수정할 필요가 없습니다.
           STATUS=$(curl -o /dev/null -w "%{http_code}" "https://${{ secrets.THEYDAY_SERVER_DOMAIN }}/env")
           echo $STATUS
           if [ $STATUS = 200 ]; then
-            # FastAPI는 환경 이름을 반환하므로, blue_server 또는 green_server가 됩니다.
-            CURRENT_UPSTREAM_FULL=$(curl -s "https://${{ secrets.THEYDAY_SERVER_DOMAIN }}/env")
-            CURRENT_UPSTREAM=${CURRENT_UPSTREAM_FULL%_*} # "_server" 접미사 제거
+            CURRENT_UPSTREAM=$(curl -s "https://${{ secrets.THEYDAY_SERVER_DOMAIN }}/env")
           else
             CURRENT_UPSTREAM=green
           fi
@@ -80,9 +77,7 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script_stop: true
           script: |
-            # 6. 새로 빌드된 FastAPI 이미지 pull
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/theyday_server_fastapi:latest
-            # docker-compose-fastapi-{target}.yml 파일을 실행하도록 수정
             sudo docker-compose -f docker-compose-fastapi-${{env.TARGET_UPSTREAM}}.yml up -d
 
       - name: Check deploy server URL
