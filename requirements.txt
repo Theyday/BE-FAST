@@ -16,3 +16,4 @@ pydantic-settings==2.2.1
 asyncpg
 python-jose[cryptography]
 greenlet
+apscheduler==3.10.4

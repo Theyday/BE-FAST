@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import settings
 from app.api.v1.api import api_router
+from app.services.notification_service import start_scheduler, stop_scheduler
 
 app = FastAPI(title=settings.PROJECT_NAME,
               openapi_url=f"{settings.API_V1_STR}/openapi.json")
@@ -26,6 +27,20 @@ app = FastAPI(title=settings.PROJECT_NAME,
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+@app.on_event("startup")
+async def startup_event():
+    """앱 시작 시 스케줄러 시작"""
+    start_scheduler()
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """앱 종료 시 스케줄러 중지"""
+    stop_scheduler()
+
 @app.get('/')
 def root():
     return {'message': 'Hello World'}
+
+@app.get('/env')
+def get_env():
+    return settings.SERVER_NAME

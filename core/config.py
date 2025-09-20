@@ -62,21 +62,21 @@ class LocalConfig(BaseConfig):
     SERVER_ADDRESS: str = "localhost"
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
-    SERVER_NAME: str = "local_server"
+    SERVER_NAME: str = "local"
 
 
 # --- blue 프로파일 설정 ---
 class BlueConfig(BaseConfig):
     SERVER_PORT: int = 8080
     SERVER_ADDRESS: str = "13.124.21.41"
-    SERVER_NAME: str = "blue_server"
+    SERVER_NAME: str = "blue"
 
 
 # --- green 프로파일 설정 ---
 class GreenConfig(BaseConfig):
     SERVER_PORT: int = 8081
     SERVER_ADDRESS: str = "13.124.21.41"
-    SERVER_NAME: str = "green_server"
+    SERVER_NAME: str = "green"
 
 # 환경변수 APP_ENV에 따라 설정을 로드하는 함수
 @lru_cache()
