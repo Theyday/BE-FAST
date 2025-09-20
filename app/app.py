@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.config import settings
 from app.api.v1.api import api_router
 from app.services.notification_service import start_scheduler, stop_scheduler
+from fastapi.responses import Response 
 
 app = FastAPI(title=settings.PROJECT_NAME,
               openapi_url=f"{settings.API_V1_STR}/openapi.json")
@@ -43,4 +44,4 @@ def root():
 
 @app.get('/env')
 def get_env():
-    return settings.SERVER_NAME
+    return Response(content=settings.SERVER_NAME, media_type="text/plain")
