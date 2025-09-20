@@ -36,7 +36,7 @@ jobs:
 
       # 4. FastAPI용 Docker 이미지 빌드
       - name: Build Docker
-        run: docker build --platform linux/amd64 -f ./BE_FASTAPI/Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/theyday_server_fastapi ./BE_FASTAPI
+        run: docker build --platform linux/amd64 -f ./Dockerfile -t ${{ secrets.DOCKERHUB_USERNAME }}/theyday_server_fastapi ./
 
       # 5. 새 이름으로 Docker 이미지 푸시
       - name: Push Docker
