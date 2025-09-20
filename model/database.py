@@ -3,7 +3,18 @@ from core.config import settings
 
 DATABASE_URL = settings.SQLALCHEMY_DATABASE_URI.replace("postgresql://", "postgresql+asyncpg://")
 
-engine = create_async_engine(DATABASE_URL, echo=False)
+# DB_SSLMODE 값에 따라 asyncpg에 맞는 SSL 설정을 구성합니다.
+connect_args = {}
+if settings.DB_SSLMODE == 'disable':
+    connect_args["ssl"] = False
+elif settings.DB_SSLMODE == 'require':
+    connect_args["ssl"] = True
+
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    connect_args=connect_args  # 생성자에 connect_args 추가
+)
 
 AsyncSessionLocal = async_sessionmaker(
     engine, expire_on_commit=False, class_=AsyncSession
