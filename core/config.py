@@ -18,6 +18,7 @@ class BaseConfig(BaseSettings):
     DB_NAME: str = 'theyday'
     USER: str = 'monstazo'
     PASSWORD: str = 'tidlsl!2'
+    DB_SSLMODE: str = 'require' # 기본값을 'require'로 설정
     SQLALCHEMY_DATABASE_URI: str = f'postgresql://{USER}:{PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
     # JWT Settings
@@ -63,6 +64,7 @@ class LocalConfig(BaseConfig):
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     SERVER_NAME: str = "local"
+    DB_SSLMODE: str = 'disable' # 로컬 DB는 SSL을 사용하지 않으므로 'disable'로 오버라이드
 
 
 # --- blue 프로파일 설정 ---
@@ -70,6 +72,7 @@ class BlueConfig(BaseConfig):
     SERVER_PORT: int = 8080
     SERVER_ADDRESS: str = "13.124.21.41"
     SERVER_NAME: str = "blue"
+    DB_SSLMODE: str = 'require' # AWS RDS는 SSL이 필수이므로 'require'로 명시
 
 
 # --- green 프로파일 설정 ---
@@ -77,6 +80,7 @@ class GreenConfig(BaseConfig):
     SERVER_PORT: int = 8081
     SERVER_ADDRESS: str = "13.124.21.41"
     SERVER_NAME: str = "green"
+    DB_SSLMODE: str = 'require' # AWS RDS는 SSL이 필수이므로 'require'로 명시
 
 # 환경변수 APP_ENV에 따라 설정을 로드하는 함수
 @lru_cache()
