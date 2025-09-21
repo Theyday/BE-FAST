@@ -11,7 +11,6 @@ class User(BaseTimeModel):
     phone = Column(String, unique=True, nullable=True)
     name = Column(String, nullable=False)
     image = Column(String, nullable=True)
-    nickname = Column(String, nullable=True)
     
     routines = relationship("Routine", back_populates="user")
     participants = relationship("Participant", back_populates="user")
