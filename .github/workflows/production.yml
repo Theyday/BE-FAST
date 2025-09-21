@@ -84,6 +84,18 @@ jobs:
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/theyday_server_fastapi:latest
             sudo docker-compose -f docker-compose-fast-${{env.TARGET_UPSTREAM}}.yml up -d
 
+      - name: Run DB Migrations
+        uses: appleboy/ssh-action@master
+        with:
+          username: ubuntu
+          host: ${{ secrets.THEYDAY_SERVER_IP }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          script: |
+            echo "🚀 Running Alembic DB migrations on ${{env.TARGET_UPSTREAM}} container..."
+            docker exec -it ${{env.TARGET_UPSTREAM}} alembic upgrade head
+            echo "✅ DB migrations complete."
+
       - name: Check deploy server URL
         uses: jtalk/url-health-check-action@v3
         with:
