@@ -93,7 +93,7 @@ jobs:
           script_stop: true
           script: |
             echo "🚀 Running Alembic DB migrations on ${{env.TARGET_UPSTREAM}} container..."
-            sudo docker exec -it ${{env.TARGET_UPSTREAM}} alembic upgrade head
+            sudo docker exec -i ${{env.TARGET_UPSTREAM}} alembic upgrade head
             echo "✅ DB migrations complete."
 
       - name: Check deploy server URL
