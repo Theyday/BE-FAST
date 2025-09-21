@@ -3,6 +3,12 @@ from core.config import settings
 
 DATABASE_URL = settings.SQLALCHEMY_DATABASE_URI.replace("postgresql://", "postgresql+asyncpg://")
 
+print("--- DATABASE CONNECTION DEBUG ---")
+print(f"DATABASE_URL used for engine creation: {DATABASE_URL}")
+print(f"DB_HOST from settings: {settings.DB_HOST}")
+print(f"DB_SSLMODE from settings: {settings.DB_SSLMODE}")
+print("---------------------------------")
+
 # DB_SSLMODE 값에 따라 asyncpg에 맞는 SSL 설정을 구성합니다.
 connect_args = {}
 if settings.DB_SSLMODE == 'disable':
