@@ -1,20 +1,19 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from core.config import settings
+import ssl
 
 DATABASE_URL = settings.SQLALCHEMY_DATABASE_URI.replace("postgresql://", "postgresql+asyncpg://")
-
-print("--- DATABASE CONNECTION DEBUG ---")
-print(f"DATABASE_URL used for engine creation: {DATABASE_URL}")
-print(f"DB_HOST from settings: {settings.DB_HOST}")
-print(f"DB_SSLMODE from settings: {settings.DB_SSLMODE}")
-print("---------------------------------")
 
 # DB_SSLMODE 값에 따라 asyncpg에 맞는 SSL 설정을 구성합니다.
 connect_args = {}
 if settings.DB_SSLMODE == 'disable':
     connect_args["ssl"] = False
 elif settings.DB_SSLMODE == 'require':
-    connect_args["ssl"] = True
+    # SSLContext를 직접 만들어 서버 인증서 검증을 건너뛰도록 설정
+    ssl_context = ssl.create_default_context()
+    ssl_context.check_hostname = False
+    ssl_context.verify_mode = ssl.CERT_NONE
+    connect_args["ssl"] = ssl_context
 
 engine = create_async_engine(
     DATABASE_URL,
