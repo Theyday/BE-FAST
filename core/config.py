@@ -2,7 +2,7 @@ from functools import lru_cache
 from dotenv import load_dotenv
 from datetime import timedelta # Import timedelta
 from pydantic_settings import BaseSettings
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 
 load_dotenv()
 
@@ -19,7 +19,11 @@ class BaseConfig(BaseSettings):
     USER: str = 'monstazo'
     PASSWORD: str = 'tidlsl!2'
     DB_SSLMODE: str = 'require' # 기본값을 'require'로 설정
-    SQLALCHEMY_DATABASE_URI: str = f'postgresql://{USER}:{PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+    
+    @computed_field
+    @property
+    def SQLALCHEMY_DATABASE_URI(self) -> str:
+        return f'postgresql://{self.USER}:{self.PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}'
 
     # JWT Settings
     SECRET_KEY: str = '404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970'
