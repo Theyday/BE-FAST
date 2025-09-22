@@ -66,7 +66,7 @@ class ScheduleService:
                     break
             # Java CalendarItemDto 생성 규칙에 맞춰 값 세팅
             # startDate: scheduled_time, 없으면 start_time, 없으면 created_at > end_time ? end_time : created_at
-            # endDate: end_time, 없으면 9999-12-31
+            # endDate: scheduled_time, 없으면 end_time, 없으면 9999-12-31
             # startTime: scheduled_time
             # endTime: end_time
             # isScheduled: scheduled_time is not None
@@ -84,7 +84,9 @@ class ScheduleService:
                 task_start_date = None
 
             # endDate 계산
-            if task.end_time:
+            if task.scheduled_time:
+                task_end_date = task.scheduled_time.date()
+            elif task.end_time:
                 task_end_date = task.end_time.date()
             else:
                 task_end_date = date(9999, 12, 31)
@@ -113,18 +115,13 @@ class ScheduleService:
                 if participant.user_id == user.id and participant.category:
                     color = participant.category.color
                     break
-
-            if(task.end_time):
-                task_end_date = task.end_time.date()
-            else:
-                task_end_date = date(9999, 12, 31)
             
             items.append(CalendarItemDto(
                 id=task.id,
                 type=ScheduleType.TASK.value,
                 name=task.name,
                 startDate=task.completed_at,
-                endDate=task_end_date,
+                endDate=task.completed_at,
                 startTime=task.scheduled_time.time() if task.scheduled_time else None,
                 endTime=task.end_time.time() if task.end_time else None,
                 color=color,
