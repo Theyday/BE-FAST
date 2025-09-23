@@ -4,7 +4,7 @@ from datetime import date
 
 from model.ai.schemas import AIEventResponse, AITaskResponse
 from model.response_models import ApiResponse
-from model.schedule.schemas import CalendarItemDto, ScheduleType
+from model.schedule.schemas import CalendarItemDto, ScheduleType, ScheduleDetailsRequest
 from app.services.event_service import EventService
 from app.services.schedule_service import ScheduleService
 from app.services.task_service import TaskService
@@ -39,21 +39,22 @@ Response Body: { "events": [ ... ], "tasks": [ ... ] }
 """
 @router.post("/details")
 async def get_schedule_details(
-    event_ids: Annotated[List[int], Query(alias="eventIds")],
-    task_ids: Annotated[List[int], Query(alias="taskIds")],
+    request: ScheduleDetailsRequest,
+    # event_ids: Annotated[List[int], Query(alias="eventIds")],
+    # task_ids: Annotated[List[int], Query(alias="taskIds")],
     event_service: Annotated[EventService, Depends()],
     task_service: Annotated[TaskService, Depends()],
     current_user_id: int = Depends(get_current_user_id)
 ):
     events = []
     tasks = []
-    if event_ids != []:
-        for event_id in event_ids:
+    if request.event_ids != []:
+        for event_id in request.event_ids:
             event = await event_service.get_event_detail(event_id, current_user_id)
             events.append(event)
 
-    if task_ids != []:
-        for task_id in task_ids:
+    if request.task_ids != []:
+        for task_id in request.task_ids:
             task = await task_service.get_task_detail(task_id, current_user_id)
             tasks.append(task)
 
