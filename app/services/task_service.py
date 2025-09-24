@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -91,7 +91,17 @@ class TaskService:
         task.start_time = request.start_time
         task.end_time = request.end_time
         task.description = request.description
-        await task_crud.save(self.db, task) # Save task changes
+
+        # 9/24 추가, 기존 수정에 할일 완료 토글을 합침 (기존의 완료 API는 구버전 앱을 위해 남겨둠)
+        if request.is_completed is not None:
+            if request.is_completed:
+                task.is_completed = True
+                task.completed_at = datetime.now() # 현재 시간을 완료 시간으로 
+            else:
+                task.is_completed = False
+                task.completed_at = None
+
+        await task_crud.save(self.db, task)
 
         user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:

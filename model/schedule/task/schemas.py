@@ -58,7 +58,8 @@ class TaskEditRequest(BaseModel):
     description: Optional[str] = None
     category_id: int = Field(..., alias="categoryId")
     alert: Optional[TaskAlertResponse] = None
-
+    is_completed: Optional[bool] = Field(None, alias="isCompleted")
+    
     class Config:
         from_attributes = True
         populate_by_name = True
