@@ -35,8 +35,6 @@ class TaskDetailResponse(BaseModel):
     visibility: Visibility
     category: CategoryResponse
     alert: Optional[TaskAlertResponse] = None
-    created_at: datetime = Field(..., alias="createdAt")
-    completed_at: datetime = Field(..., alias="completedAt")
 
     class Config:
         from_attributes = True

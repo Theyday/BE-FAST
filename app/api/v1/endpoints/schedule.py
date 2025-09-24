@@ -4,10 +4,8 @@ from datetime import date
 
 from model.ai.schemas import AIEventResponse, AITaskResponse
 from model.response_models import ApiResponse
-from model.schedule.schemas import CalendarItemDto, ScheduleType, ScheduleDetailsRequest
-from app.services.event_service import EventService
+from model.schedule.schemas import CalendarItemDto, ScheduleType
 from app.services.schedule_service import ScheduleService
-from app.services.task_service import TaskService
 from core.jwt_security import get_current_user_id
 
 router = APIRouter()
@@ -31,36 +29,3 @@ async def change_schedule_type(
 ):
     result = await schedule_service.change_schedule_type(schedule_id, current_type, current_user_id)
     return ApiResponse(message="일정 타입을 변경하였습니다.", data=result)
-
-"""
-POST /api/v1/schedules/details
-Request Body: { "eventIds": [1, 5, 12], "taskIds": [8, 15] }
-Response Body: { "events": [ ... ], "tasks": [ ... ] }
-"""
-@router.post("/details")
-async def get_schedule_details(
-    request: ScheduleDetailsRequest,
-    # event_ids: Annotated[List[int], Query(alias="eventIds")],
-    # task_ids: Annotated[List[int], Query(alias="taskIds")],
-    event_service: Annotated[EventService, Depends()],
-    task_service: Annotated[TaskService, Depends()],
-    current_user_id: int = Depends(get_current_user_id)
-):
-    events = []
-    tasks = []
-    if request.event_ids != []:
-        for event_id in request.event_ids:
-            event = await event_service.get_event_detail(event_id, current_user_id)
-            events.append(event)
-
-    if request.task_ids != []:
-        for task_id in request.task_ids:
-            task = await task_service.get_task_detail(task_id, current_user_id)
-            tasks.append(task)
-
-    details = {
-        "events": events,
-        "tasks": tasks
-    }
-
-    return ApiResponse(message="일정 상세 정보를 조회하였습니다.", data=details)
