@@ -50,13 +50,13 @@ class ScheduleTaskRequest(BaseModel):
         populate_by_name = True
 
 class TaskEditRequest(BaseModel):
-    name: str
+    name: Optional[str] = None
     location: Optional[str] = None
     scheduled_time: Optional[datetime] = Field(None, alias="scheduledTime")
     start_time: Optional[datetime] = Field(None, alias="startTime")
     end_time: Optional[datetime] = Field(None, alias="endTime")
     description: Optional[str] = None
-    category_id: int = Field(..., alias="categoryId")
+    category_id: Optional[int] = Field(None, alias="categoryId")
     alert: Optional[TaskAlertResponse] = None
     is_completed: Optional[bool] = Field(None, alias="isCompleted")
     

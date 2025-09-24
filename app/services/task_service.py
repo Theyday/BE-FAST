@@ -85,13 +85,18 @@ class TaskService:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
         
         # Update task fields
-        task.name = request.name
-        task.location = request.location
-        task.scheduled_time = request.scheduled_time
-        task.start_time = request.start_time
-        task.end_time = request.end_time
-        task.description = request.description
-
+        if request.name is not None:
+            task.name = request.name
+        if request.location is not None:
+            task.location = request.location
+        if request.scheduled_time is not None:
+            task.scheduled_time = request.scheduled_time
+        if request.start_time is not None:
+            task.start_time = request.start_time
+        if request.end_time is not None:
+            task.end_time = request.end_time
+        if request.description is not None:
+            task.description = request.description
         # 9/24 추가, 기존 수정에 할일 완료 토글을 합침 (기존의 완료 API는 구버전 앱을 위해 남겨둠)
         if request.is_completed is not None:
             if request.is_completed:
@@ -111,34 +116,34 @@ class TaskService:
         if not participant:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Participant not found")
 
-        # Update category
-        category = await category_crud.find_by_id_and_user(self.db, request.category_id, user)
-        if not category:
-            raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
-        participant.category = category
-        await participant_crud.save(self.db, participant)
+        if request.category_id is not None:
+            category = await category_crud.find_by_id_and_user(self.db, request.category_id, user)
+            if not category:
+                raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+            participant.category = category
+            await participant_crud.save(self.db, participant)
 
-        # Update alerts
-        await alert_crud.delete_by_participant(self.db, participant)
+        if request.alert is not None:
+            await alert_crud.delete_by_participant(self.db, participant)
 
-        if request.alert and request.alert.task_schedule is not None:
-            await alert_crud.save(self.db, alert_models.Alert(
-                participant_id=participant.id,
-                type=AlertType.TASK_SCHEDULE,
-                minutes_before=request.alert.task_schedule
-            ))
-        if request.alert and request.alert.task_start is not None:
-            await alert_crud.save(self.db, alert_models.Alert(
-                participant_id=participant.id,
-                type=AlertType.TASK_START,
-                minutes_before=request.alert.task_start
-            ))
-        if request.alert and request.alert.task_end is not None:
-            await alert_crud.save(self.db, alert_models.Alert(
-                participant_id=participant.id,
-                type=AlertType.TASK_END,
-                minutes_before=request.alert.task_end
-            ))
+            if request.alert and request.alert.task_schedule is not None:
+                await alert_crud.save(self.db, alert_models.Alert(
+                    participant_id=participant.id,
+                    type=AlertType.TASK_SCHEDULE,
+                    minutes_before=request.alert.task_schedule
+                ))
+            if request.alert and request.alert.task_start is not None:
+                await alert_crud.save(self.db, alert_models.Alert(
+                    participant_id=participant.id,
+                    type=AlertType.TASK_START,
+                    minutes_before=request.alert.task_start
+                ))
+            if request.alert and request.alert.task_end is not None:
+                await alert_crud.save(self.db, alert_models.Alert(
+                    participant_id=participant.id,
+                    type=AlertType.TASK_END,
+                    minutes_before=request.alert.task_end
+                ))
 
     async def delete_task(self, task_id: int, current_user_id: int) -> None:
         task = await task_crud.get_task_by_id(self.db, task_id)
