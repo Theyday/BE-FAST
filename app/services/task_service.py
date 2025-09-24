@@ -74,7 +74,9 @@ class TaskService:
             isCompleted=task.is_completed,
             visibility=task.visibility,
             category=category_response,
-            alert=task_alert_response
+            alert=task_alert_response,
+            createdAt=task.created_at,
+            completedAt=task.completed_at
         )
 
     async def edit_task(self, task_id: int, request: task_schemas.TaskEditRequest, current_user_id: int) -> None:
