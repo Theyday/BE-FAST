@@ -36,7 +36,7 @@ class TaskDetailResponse(BaseModel):
     category: CategoryResponse
     alert: Optional[TaskAlertResponse] = None
     created_at: datetime = Field(..., alias="createdAt")
-    completed_at: datetime = Field(..., alias="completedAt")
+    completed_at: Optional[datetime] = Field(None, alias="completedAt")
 
     class Config:
         from_attributes = True
@@ -59,6 +59,7 @@ class TaskEditRequest(BaseModel):
     category_id: Optional[int] = Field(None, alias="categoryId")
     alert: Optional[TaskAlertResponse] = None
     is_completed: Optional[bool] = Field(None, alias="isCompleted")
+    completed_at: Optional[date] = Field(None, alias="completedAt")
     
     class Config:
         from_attributes = True

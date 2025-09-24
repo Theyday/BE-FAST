@@ -101,7 +101,8 @@ class TaskService:
         if request.is_completed is not None:
             if request.is_completed:
                 task.is_completed = True
-                task.completed_at = datetime.now() # 현재 시간을 완료 시간으로 
+                # 내가 완료를 누른 날짜에 완료 처리
+                task.completed_at = request.completed_at 
             else:
                 task.is_completed = False
                 task.completed_at = None
