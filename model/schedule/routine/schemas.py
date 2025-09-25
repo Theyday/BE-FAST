@@ -1,5 +1,5 @@
 from datetime import time
-from typing import Optional, List
+from typing import Optional
 from pydantic import BaseModel, Field
 
 from ..alert.schemas import RoutineAlertResponse

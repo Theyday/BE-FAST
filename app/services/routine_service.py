@@ -156,7 +156,7 @@ class RoutineService:
         if not routine.user_id == user.id:
             raise CustomException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden: User is not the owner of the routine")
         
-        await routine_crud.delete_by_id(self.db, routine_id)
+        await routine_crud.delete(self.db, routine)
 
     # This method is called from UserService during user creation
     async def create_default_routines_for_user(self, db: AsyncSession, user: user_models.User) -> List[routine_models.Routine]:

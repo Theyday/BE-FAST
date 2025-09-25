@@ -1,7 +1,6 @@
 from sqlalchemy import Column, BigInteger, String, Date, Time, Enum
 from sqlalchemy.orm import relationship
 
-from ..visibility import Visibility
 from ...base_time_model import BaseTimeModel
 
 class Event(BaseTimeModel):
@@ -17,4 +16,4 @@ class Event(BaseTimeModel):
     end_time = Column(Time, nullable=True)
     source_text = Column(String(500), nullable=True)
     visibility = Column(String(20), nullable=False)
-    participants = relationship("Participant", back_populates="event")
+    participants = relationship("Participant", back_populates="event", cascade="all, delete-orphan")

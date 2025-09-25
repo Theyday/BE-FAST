@@ -30,3 +30,21 @@ class CalendarItemDto(BaseModel):
     class Config:
         from_attributes = True
         populate_by_name = True
+
+class OperationLog(BaseModel):
+    table_name: str = Field(..., alias="tableName", description="수정 대상 테이블명: events, tasks, routines 중 하나")
+    row_id: int = Field(..., alias="rowId", description="해당 모델의 ID")
+    operation: str = Field(..., description="create, update, delete 중 하나")
+    payload: Optional[dict] = Field(None, description="수정/생성 요청 바디, 삭제라면 없음")
+    timestamp: int = Field(..., description="오프라인에서 해당 수정이 이루어진 시간 (UNIX timestamp)")
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
+class ScheduleBatchRequest(BaseModel):
+    operations: List[OperationLog]
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True

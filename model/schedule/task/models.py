@@ -1,7 +1,6 @@
 from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Date, Enum
 from sqlalchemy.orm import relationship
 
-from ..visibility import Visibility
 from ...base_time_model import BaseTimeModel
 
 class Task(BaseTimeModel):
@@ -19,4 +18,4 @@ class Task(BaseTimeModel):
     source_text = Column(String(500), nullable=True)
     visibility = Column(String(20), nullable=False)
 
-    participants = relationship("Participant", back_populates="task")
+    participants = relationship("Participant", back_populates="task", cascade="all, delete-orphan")

@@ -2,13 +2,17 @@ from fastapi import APIRouter, Depends, Query, Path
 from typing import Annotated, List, Union
 from datetime import date
 
+from app.services.routine_service import RoutineService
 from model.ai.schemas import AIEventResponse, AITaskResponse
 from model.response_models import ApiResponse
-from model.schedule.schemas import CalendarItemDto, ScheduleType, ScheduleDetailsRequest
+from model.schedule.event import schemas as event_schemas
+from model.schedule.routine import schemas as routine_schemas
+from model.schedule.schemas import CalendarItemDto, ScheduleBatchRequest, ScheduleType, ScheduleDetailsRequest
 from app.services.event_service import EventService
 from app.services.schedule_service import ScheduleService
 from app.services.task_service import TaskService
 from core.jwt_security import get_current_user_id
+from model.schedule.task import schemas as task_schemas
 
 router = APIRouter()
 
@@ -64,3 +68,33 @@ async def get_schedule_details(
     }
 
     return ApiResponse(message="일정 상세 정보를 조회하였습니다.", data=details)
+
+@router.post("/batch")
+async def post_schedule_batch(
+    request: ScheduleBatchRequest,
+    event_service: Annotated[EventService, Depends()],
+    task_service: Annotated[TaskService, Depends()],
+    routine_service: Annotated[RoutineService, Depends()],
+    current_user_id: int = Depends(get_current_user_id)
+):
+    for operation in request.operations:
+        if operation.table_name == "events":
+            if operation.operation == "update":
+                event_edit_request = event_schemas.EventEditRequest.model_validate(operation.payload)
+                await event_service.edit_event(operation.row_id, event_edit_request, current_user_id)
+            elif operation.operation == "delete":
+                await event_service.delete_event(operation.row_id, current_user_id)
+        elif operation.table_name == "tasks":
+            if operation.operation == "update":
+                task_edit_request = task_schemas.TaskEditRequest.model_validate(operation.payload)
+                await task_service.edit_task(operation.row_id, task_edit_request, current_user_id)
+            elif operation.operation == "delete":
+                await task_service.delete_task(operation.row_id, current_user_id)
+        elif operation.table_name == "routines":
+            if operation.operation == "update":
+                routine_edit_request = routine_schemas.RoutineCreateRequest.model_validate(operation.payload)
+                await routine_service.update_routine(operation.row_id, routine_edit_request, current_user_id)
+            elif operation.operation == "delete":
+                await routine_service.delete_routine(operation.row_id, current_user_id)
+    
+    return ApiResponse(message="일정 변경사항을 일괄 배치하였습니다.", data=None)
