@@ -8,9 +8,11 @@ from model.ai.schemas import AIEventResponse, AITaskResponse
 from model.response_models import ApiResponse
 from model.schedule.event import schemas as event_schemas
 from model.schedule.routine import schemas as routine_schemas
+from model.category import schemas as category_schemas
 from model.schedule.schemas import CalendarItemDto, ScheduleBatchRequest, ScheduleType, ScheduleDetailsRequest
 from app.services.event_service import EventService
 from app.services.schedule_service import ScheduleService
+from app.services.category_service import CategoryService
 from core.jwt_security import get_current_user_id
 from model.schedule.task import schemas as task_schemas
 
@@ -75,6 +77,7 @@ async def post_schedule_batch(
     event_service: Annotated[EventService, Depends()],
     task_service: Annotated[TaskService, Depends()],
     routine_service: Annotated[RoutineService, Depends()],
+    category_service: Annotated[CategoryService, Depends()],
     current_user_id: int = Depends(get_current_user_id)
 ):
     for operation in request.operations:
@@ -96,5 +99,12 @@ async def post_schedule_batch(
                 await routine_service.update_routine(operation.row_id, routine_edit_request, current_user_id)
             elif operation.operation == "delete":
                 await routine_service.delete_routine(operation.row_id, current_user_id)
-    
+        elif operation.table_name == "categories":
+            if operation.operation == "update":
+                category_edit_request = category_schemas.CategoryUpdate.model_validate(operation.payload)
+                await category_service.update_category(operation.row_id, category_edit_request, current_user_id)
+            elif operation.operation == "delete":
+                await category_service.delete_category(operation.row_id, current_user_id)
+
+
     return ApiResponse(message="일정 변경사항을 일괄 배치하였습니다.", data=None)
