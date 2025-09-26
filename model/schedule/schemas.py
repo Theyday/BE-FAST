@@ -3,14 +3,6 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 from enum import Enum
 
-class ScheduleDetailsRequest(BaseModel):
-    event_ids: List[int] = Field(..., alias="eventIds")
-    task_ids: List[int] = Field(..., alias="taskIds")
-
-    class Config:
-        from_attributes = True
-        populate_by_name = True
-
 class ScheduleType(str, Enum):
     EVENT = "EVENT"
     TASK = "TASK"

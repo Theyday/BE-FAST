@@ -10,7 +10,6 @@ from model.schedule.routine import schemas as routine_schemas
 from model.schedule.schemas import CalendarItemDto, ScheduleBatchRequest, ScheduleType, ScheduleDetailsRequest
 from app.services.event_service import EventService
 from app.services.schedule_service import ScheduleService
-from app.services.task_service import TaskService
 from core.jwt_security import get_current_user_id
 from model.schedule.task import schemas as task_schemas
 
