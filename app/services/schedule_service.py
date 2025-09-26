@@ -4,6 +4,7 @@ from typing import List, Union, Optional
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from model.category.schemas import CategoryResponse
 from model.ai.schemas import AIEventResponse, AITaskResponse
 from model.database import get_async_session
 from model.user.crud import user_crud
@@ -38,11 +39,18 @@ class ScheduleService:
         # Fetch events
         events = await event_crud.find_by_participant_and_range(self.db, user, start_date, end_date)
         for event in events:
-            color = "#CCCCCC"  # 기본값
+            category = None
             for participant in event.participants:
                 if participant.user_id == user.id and participant.category:
-                    color = participant.category.color
+                    category = participant.category
                     break
+
+            category_response = CategoryResponse(
+                id=category.id,
+                name=category.name,
+                color=category.color,
+                isDefault=category.is_default
+            ) if category else None
 
             items.append(CalendarItemDto(
                 id=event.id,
@@ -52,18 +60,26 @@ class ScheduleService:
                 endDate=event.end_date,
                 startTime=event.start_time,
                 endTime=event.end_time,
-                color=color,
+                category=category_response,
                 isCompleted=False, # Events are not completed
                 isScheduled=event.start_time is not None or event.end_time is not None # If there's any time, it's scheduled
             ))
         
         uncompleted_tasks = await task_crud.find_uncompleted_tasks_by_participant_and_range(self.db, user, start_date, end_date)
         for task in uncompleted_tasks:
-            color = "#CCCCCC"
+            category = None
             for participant in task.participants:
                 if participant.user_id == user.id and participant.category:
-                    color = participant.category.color
+                    category = participant.category
                     break
+
+            category_response = CategoryResponse(
+                id=category.id,
+                name=category.name,
+                color=category.color,
+                isDefault=category.is_default
+            ) if category else None
+
             # Java CalendarItemDto 생성 규칙에 맞춰 값 세팅
             # startDate: scheduled_time, 없으면 start_time, 없으면 created_at > end_time ? end_time : created_at
             # endDate: scheduled_time, 없으면 end_time, 없으면 9999-12-31
@@ -103,19 +119,26 @@ class ScheduleService:
                 endDate=task_end_date,
                 startTime=task_start_time,
                 endTime=task_end_time,
-                color=color,
+                category=category_response,
                 isCompleted=task.is_completed,
                 isScheduled=task.scheduled_time is not None
             ))
 
         completed_tasks = await task_crud.find_completed_tasks_by_participant_and_range(self.db, user, start_date, end_date)
         for task in completed_tasks:
-            color = "#CCCCCC"
+            category = None
             for participant in task.participants:
                 if participant.user_id == user.id and participant.category:
-                    color = participant.category.color
+                    category = participant.category
                     break
             
+            category_response = CategoryResponse(
+                id=category.id,
+                name=category.name,
+                color=category.color,
+                isDefault=category.is_default
+            ) if category else None
+
             items.append(CalendarItemDto(
                 id=task.id,
                 type=ScheduleType.TASK.value,
@@ -124,7 +147,7 @@ class ScheduleService:
                 endDate=task.completed_at,
                 startTime=task.scheduled_time.time() if task.scheduled_time else None,
                 endTime=task.end_time.time() if task.end_time else None,
-                color=color,
+                category=category_response,
                 isCompleted=task.is_completed,
                 isScheduled=task.scheduled_time is not None
             ))
