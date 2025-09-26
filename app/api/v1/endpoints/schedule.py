@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Query, Path
 from typing import Annotated, List, Union
 from datetime import date
 
+from app.services.task_service import TaskService
 from app.services.routine_service import RoutineService
 from model.ai.schemas import AIEventResponse, AITaskResponse
 from model.response_models import ApiResponse
