@@ -83,20 +83,20 @@ class TaskService:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
         
         # Update task fields
-        if request.name is not None:
+        if 'name' in request.model_fields_set:
             task.name = request.name
-        if request.location is not None:
+        if 'location' in request.model_fields_set:
             task.location = request.location
-        if request.scheduled_time is not None:
+        if 'scheduled_time' in request.model_fields_set:
             task.scheduled_time = request.scheduled_time
-        if request.start_time is not None:
+        if 'start_time' in request.model_fields_set:
             task.start_time = request.start_time
-        if request.end_time is not None:
+        if 'end_time' in request.model_fields_set:
             task.end_time = request.end_time
-        if request.description is not None:
+        if 'description' in request.model_fields_set:
             task.description = request.description
         # 9/24 추가, 기존 수정에 할일 완료 토글을 합침 (기존의 완료 API는 구버전 앱을 위해 남겨둠)
-        if request.is_completed is not None:
+        if 'is_completed' in request.model_fields_set:
             if request.is_completed:
                 task.is_completed = True
                 # 내가 완료를 누른 날짜에 완료 처리
@@ -115,14 +115,14 @@ class TaskService:
         if not participant:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Participant not found")
 
-        if request.category_id is not None:
+        if 'category_id' in request.model_fields_set:
             category = await category_crud.find_by_id_and_user(self.db, request.category_id, user)
             if not category:
                 raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
             participant.category = category
             await participant_crud.save(self.db, participant)
 
-        if request.alert is not None:
+        if 'alert' in request.model_fields_set:
             await alert_crud.delete_by_participant(self.db, participant)
 
             if request.alert and request.alert.task_schedule is not None:

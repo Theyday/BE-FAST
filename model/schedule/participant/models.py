@@ -18,4 +18,4 @@ class Participant(BaseTimeModel):
     event = relationship("Event", back_populates="participants")
     task = relationship("Task", back_populates="participants")
     category = relationship("Category", back_populates="participants")
-    alerts = relationship("Alert", back_populates="participant")
+    alerts = relationship("Alert", back_populates="participant", cascade="all, delete-orphan")
