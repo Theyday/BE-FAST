@@ -3,6 +3,8 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 from enum import Enum
 
+from model.category.schemas import CategoryResponse
+
 class ScheduleDetailsRequest(BaseModel):
     event_ids: List[int] = Field(..., alias="eventIds")
     task_ids: List[int] = Field(..., alias="taskIds")
@@ -24,7 +26,7 @@ class CalendarItemDto(BaseModel):
     end_date: Optional[date] = Field(None, alias="endDate")
     start_time: Optional[time] = Field(None, alias="startTime")
     end_time: Optional[time] = Field(None, alias="endTime")
-    color: str
+    category: CategoryResponse
     is_completed: bool = Field(False, alias="isCompleted")
     is_scheduled: bool = Field(False, alias="isScheduled")
 
