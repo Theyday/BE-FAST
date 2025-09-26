@@ -40,10 +40,8 @@ class RoutineCRUD:
         await db.refresh(routine)
         return routine
 
-    async def delete_by_id(self, db: AsyncSession, routine_id: int) -> None:
-        await db.execute(
-            delete(models.Routine).where(models.Routine.id == routine_id)
-        )
+    async def delete(self, db: AsyncSession, routine: models.Routine) -> None:
+        await db.delete(routine)
         await db.commit()
 
 routine_crud = RoutineCRUD()

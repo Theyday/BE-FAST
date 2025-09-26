@@ -16,4 +16,4 @@ class Routine(BaseTimeModel):
     color = Column(String(10), nullable=False)
 
     user = relationship("User", back_populates="routines")
-    alerts = relationship("Alert", back_populates="routine")
+    alerts = relationship("Alert", back_populates="routine", cascade="all, delete-orphan")
