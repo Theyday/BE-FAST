@@ -24,6 +24,7 @@ class SignUpRequest(BaseModel):
 class TokenResponse(BaseModel):
     accessToken: str
     refreshToken: str
+    userId: int
 
 class DeviceTokenRequest(BaseModel):
     token: str
