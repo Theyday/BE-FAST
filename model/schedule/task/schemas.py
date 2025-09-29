@@ -49,6 +49,22 @@ class ScheduleTaskRequest(BaseModel):
         from_attributes = True
         populate_by_name = True
 
+class TaskCreateRequest(BaseModel):
+    name: str
+    location: Optional[str] = None
+    scheduled_time: Optional[datetime] = Field(None, alias="scheduledTime")
+    start_time: Optional[datetime] = Field(None, alias="startTime")
+    end_time: Optional[datetime] = Field(None, alias="endTime")
+    description: Optional[str] = None
+    category_id: Optional[int] = Field(None, alias="categoryId")
+    alert: Optional[TaskAlertResponse] = None
+    is_completed: bool = Field(False, alias="isCompleted")
+    completed_at: Optional[date] = Field(None, alias="completedAt")
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
 class TaskEditRequest(BaseModel):
     name: Optional[str] = None
     location: Optional[str] = None

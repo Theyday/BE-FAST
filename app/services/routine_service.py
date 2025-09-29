@@ -25,7 +25,7 @@ class RoutineService:
     ):
         self.db = db
 
-    async def create_routine(self, request: routine_schemas.RoutineCreateRequest, current_user_id: int) -> None:
+    async def create_routine(self, request: routine_schemas.RoutineCreateRequest, current_user_id: int) -> routine_models.Routine:
         user = await user_crud.get_user_by_id(self.db, current_user_id)
         if not user:
             raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
@@ -39,7 +39,7 @@ class RoutineService:
             icon=request.icon,
             color=request.color
         )
-        await routine_crud.save(self.db, new_routine)
+        db_routine = await routine_crud.save(self.db, new_routine)
 
         if request.alert:
             if request.alert.routine_start is not None:
@@ -54,6 +54,8 @@ class RoutineService:
                     type=AlertType.ROUTINE_END,
                     minutes_before=request.alert.routine_end
                 ))
+
+        return db_routine
 
     async def update_routine(self, routine_id: int, request: routine_schemas.RoutineCreateRequest, current_user_id: int) -> None:
         user = await user_crud.get_user_by_id(self.db, current_user_id)

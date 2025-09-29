@@ -79,6 +79,55 @@ class TaskService:
             completedAt=task.completed_at
         )
 
+    async def create_task(self, request: task_schemas.TaskCreateRequest, current_user_id: int) -> task_models.Task:
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
+        if not user:
+            raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        category = await category_crud.find_by_id_and_user(self.db, request.category_id, user)
+        if not category:
+            raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+
+        new_task = task_models.Task(
+            name=request.name,
+            location=request.location,
+            scheduled_time=request.scheduled_time,
+            start_time=request.start_time,
+            end_time=request.end_time,
+            description=request.description,
+            visibility=request.visibility
+        )
+        await task_crud.save(self.db, new_task)
+
+        participant = participant_models.Participant(
+            task_id=new_task.id,
+            user_id=user.id,
+            role="OWNER",
+            category_id=category.id
+        )
+        await participant_crud.save(self.db, participant)
+
+        if request.alert and request.alert.task_schedule is not None:
+            await alert_crud.save(self.db, alert_models.Alert(
+                participant_id=participant.id,
+                type=AlertType.TASK_SCHEDULE,
+                minutes_before=request.alert.task_schedule
+            ))
+        if request.alert and request.alert.task_start is not None:
+            await alert_crud.save(self.db, alert_models.Alert(
+                participant_id=participant.id,
+                type=AlertType.TASK_START,
+                minutes_before=request.alert.task_start
+            ))
+        if request.alert and request.alert.task_end is not None:
+            await alert_crud.save(self.db, alert_models.Alert(
+                participant_id=participant.id,
+                type=AlertType.TASK_END,
+                minutes_before=request.alert.task_end
+            ))
+
+        return new_task
+
     async def edit_task(self, task_id: int, request: task_schemas.TaskEditRequest, current_user_id: int) -> None:
         task = await task_crud.get_task_by_id(self.db, task_id)
         if not task:

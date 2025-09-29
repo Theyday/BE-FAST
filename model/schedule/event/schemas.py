@@ -23,6 +23,22 @@ class EventResponse(BaseModel):
         from_attributes = True
         populate_by_name = True
 
+class EventCreateRequest(BaseModel):
+    name: str
+    location: Optional[str] = None
+    start_date: date = Field(..., alias="startDate")
+    end_date: date = Field(..., alias="endDate")
+    start_time: Optional[time] = Field(None, alias="startTime")
+    end_time: Optional[time] = Field(None, alias="endTime")
+    description: Optional[str] = None
+    visibility: Visibility
+    category_id: int = Field(..., alias="categoryId")
+    alert: Optional[EventAlertResponse] = None
+
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
 class EventDetailResponse(BaseModel):
     id: int
     type: str = "EVENT"

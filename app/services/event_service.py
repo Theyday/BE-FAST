@@ -8,6 +8,8 @@ from model.schedule.event.crud import event_crud
 from model.schedule.participant.crud import participant_crud
 from model.schedule.alert.crud import alert_crud
 from model.category import models as category_models
+from model.schedule.participant import models as participant_models
+from model.schedule.event import models as event_models
 from model.schedule.alert import models as alert_models
 from model.schedule.event import schemas as event_schemas
 from model.schedule.alert.schemas import EventAlertResponse
@@ -68,6 +70,48 @@ class EventService:
             category=category_response,
             alert=event_alert_response
         )
+
+    async def create_event(self, request: event_schemas.EventCreateRequest, current_user_id: int) -> event_schemas.EventDetailResponse:
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
+        if not user:
+            raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        category = await category_crud.find_by_id_and_user(self.db, request.category_id, user)
+        if not category:
+            raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+
+        event = await event_crud.save(self.db, event_models.Event(
+            name=request.name,
+            location=request.location,
+            start_date=request.start_date,
+            end_date=request.end_date,
+            start_time=request.start_time,
+            end_time=request.end_time,
+            description=request.description,
+            visibility="PRIVATE"
+        ))
+
+        participant = await participant_crud.save(self.db, participant_models.Participant(
+            event_id=event.id,
+            user_id=user.id,
+            role="OWNER",
+            category_id=category.id
+        ))
+
+        if request.alert and request.alert.event_start is not None:
+            await alert_crud.save(self.db, alert_models.Alert(
+                participant_id=participant.id,
+                type=AlertType.EVENT_START,
+                minutes_before=request.alert.event_start
+            ))
+        if request.alert and request.alert.event_end is not None:
+            await alert_crud.save(self.db, alert_models.Alert(
+                participant_id=participant.id,
+                type=AlertType.EVENT_END,
+                minutes_before=request.alert.event_end
+            ))
+
+        return await self.get_event_detail(event.id, current_user_id)
 
     async def edit_event(self, event_id: int, request: event_schemas.EventEditRequest, current_user_id: int) -> None:
         event = await event_crud.get_event_by_id(self.db, event_id)
