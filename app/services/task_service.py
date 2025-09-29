@@ -103,7 +103,8 @@ class TaskService:
             task_id=new_task.id,
             user_id=user.id,
             role="OWNER",
-            category_id=category.id
+            category_id=category.id,
+            status="ACCEPTED"
         )
         await participant_crud.save(self.db, participant)
 

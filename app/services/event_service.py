@@ -95,7 +95,8 @@ class EventService:
             event_id=event.id,
             user_id=user.id,
             role="OWNER",
-            category_id=category.id
+            category_id=category.id,
+            status="ACCEPTED"
         ))
 
         if request.alert and request.alert.event_start is not None:
