@@ -97,11 +97,11 @@ async def post_schedule_batch(
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "events"]:
                     operation.row_id = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.row_id and item["tableName"] == "events")
                 event_edit_request = event_schemas.EventEditRequest.model_validate(operation.payload)
-                await event_service.edit_event(operation.row_id, event_edit_request, current_user_id)
+                await event_service.edit_event(int(operation.row_id), event_edit_request, current_user_id)
             elif operation.operation == "delete":
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "events"]:
                     operation.row_id = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.row_id and item["tableName"] == "events")
-                await event_service.delete_event(operation.row_id, current_user_id)
+                await event_service.delete_event(int(operation.row_id), current_user_id)
         elif operation.table_name == "tasks":
             if operation.operation == "create":
                 task_create_request = task_schemas.TaskCreateRequest.model_validate(operation.payload)
@@ -111,11 +111,11 @@ async def post_schedule_batch(
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "tasks"]:
                     operation.row_id = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.row_id and item["tableName"] == "tasks")
                 task_edit_request = task_schemas.TaskEditRequest.model_validate(operation.payload)
-                await task_service.edit_task(operation.row_id, task_edit_request, current_user_id)
+                await task_service.edit_task(int(operation.row_id), task_edit_request, current_user_id)
             elif operation.operation == "delete":
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "tasks"]:
                     operation.row_id = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.row_id and item["tableName"] == "tasks")
-                await task_service.delete_task(operation.row_id, current_user_id)
+                await task_service.delete_task(int(operation.row_id), current_user_id)
         elif operation.table_name == "routines":
             if operation.operation == "create":
                 routine_create_request = routine_schemas.RoutineCreateRequest.model_validate(operation.payload)
@@ -125,11 +125,11 @@ async def post_schedule_batch(
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "routines"]:
                     operation.row_id = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.row_id and item["tableName"] == "routines")
                 routine_edit_request = routine_schemas.RoutineCreateRequest.model_validate(operation.payload)
-                await routine_service.update_routine(operation.row_id, routine_edit_request, current_user_id)
+                await routine_service.update_routine(int(operation.row_id), routine_edit_request, current_user_id)
             elif operation.operation == "delete":
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "routines"]:
                     operation.row_id = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.row_id and item["tableName"] == "routines")
-                await routine_service.delete_routine(operation.row_id, current_user_id)
+                await routine_service.delete_routine(int(operation.row_id), current_user_id)
         elif operation.table_name == "categories":
             if operation.operation == "create":
                 category_create_request = category_schemas.CategoryCreate.model_validate(operation.payload)
@@ -139,11 +139,11 @@ async def post_schedule_batch(
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "categories"]:
                     operation.row_id = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.row_id and item["tableName"] == "categories")
                 category_edit_request = category_schemas.CategoryUpdate.model_validate(operation.payload)
-                await category_service.update_category(operation.row_id, category_edit_request, current_user_id)
+                await category_service.update_category(int(operation.row_id), category_edit_request, current_user_id)
             elif operation.operation == "delete":
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "categories"]:
                     operation.row_id = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.row_id and item["tableName"] == "categories")
-                await category_service.delete_category(operation.row_id, current_user_id)
+                await category_service.delete_category(int(operation.row_id), current_user_id)
 
 
-    return ApiResponse(message="일정 변경사항을 일괄 배치하였습니다.", data={"results": mapping_list})
+    return ApiResponse(message="일정 변경사항을 일괄 배치하였습니다.", data=mapping_list)
