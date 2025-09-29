@@ -98,7 +98,7 @@ class UserService:
         access_token = create_access_token(data={"sub": str(identity)})
         refresh_token = create_refresh_token(data={"sub": str(identity)})
 
-        return user_schemas.TokenResponse(accessToken=access_token, refreshToken=refresh_token)
+        return user_schemas.TokenResponse(accessToken=access_token, refreshToken=refresh_token, userId=identity)
 
     async def sign_up(self, request: user_schemas.SignUpRequest) -> user_schemas.TokenResponse:
         if len(request.name) > 10:
@@ -113,7 +113,7 @@ class UserService:
         access_token = create_access_token(data={"sub": str(identity)})
         refresh_token = create_refresh_token(data={"sub": str(identity)})
         
-        return user_schemas.TokenResponse(accessToken=access_token, refreshToken=refresh_token)
+        return user_schemas.TokenResponse(accessToken=access_token, refreshToken=refresh_token, userId=identity)
 
     async def refresh(self, current_user_id: int) -> user_schemas.TokenResponse:
         
