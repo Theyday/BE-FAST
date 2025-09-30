@@ -101,6 +101,7 @@ async def post_schedule_batch(
             elif operation.operation == "delete":
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "events"]:
                     operation.row_id = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.row_id and item["tableName"] == "events")
+                    mapping_list = [item for item in mapping_list if not (item["tableName"] == "events" and item["serverId"] == operation.row_id)]
                 await event_service.delete_event(int(operation.row_id), current_user_id)
         elif operation.table_name == "tasks":
             if operation.operation == "create":
@@ -115,6 +116,7 @@ async def post_schedule_batch(
             elif operation.operation == "delete":
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "tasks"]:
                     operation.row_id = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.row_id and item["tableName"] == "tasks")
+                    mapping_list = [item for item in mapping_list if not (item["tableName"] == "tasks" and item["serverId"] == operation.row_id)]
                 await task_service.delete_task(int(operation.row_id), current_user_id)
         elif operation.table_name == "routines":
             if operation.operation == "create":
@@ -129,6 +131,7 @@ async def post_schedule_batch(
             elif operation.operation == "delete":
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "routines"]:
                     operation.row_id = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.row_id and item["tableName"] == "routines")
+                    mapping_list = [item for item in mapping_list if not (item["tableName"] == "routines" and item["serverId"] == operation.row_id)]
                 await routine_service.delete_routine(int(operation.row_id), current_user_id)
         elif operation.table_name == "categories":
             if operation.operation == "create":
@@ -143,6 +146,7 @@ async def post_schedule_batch(
             elif operation.operation == "delete":
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "categories"]:
                     operation.row_id = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.row_id and item["tableName"] == "categories")
+                    mapping_list = [item for item in mapping_list if not (item["tableName"] == "categories" and item["serverId"] == operation.row_id)]
                 await category_service.delete_category(int(operation.row_id), current_user_id)
 
 
