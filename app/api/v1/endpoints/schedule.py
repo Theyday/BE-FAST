@@ -90,12 +90,16 @@ async def post_schedule_batch(
     for operation in request.operations:
         if operation.table_name == "events":
             if operation.operation == "create":
+                if operation.payload["categoryId"] in [item["tempId"] for item in mapping_list]:
+                    operation.payload["categoryId"] = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.payload["categoryId"])
                 event_create_request = event_schemas.EventCreateRequest.model_validate(operation.payload)
                 real_event = await event_service.create_event(event_create_request, current_user_id)
                 mapping_list.append({"tableName": "events", "tempId": operation.row_id, "serverId": real_event.id})
             elif operation.operation == "update":
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "events"]:
                     operation.row_id = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.row_id and item["tableName"] == "events")
+                if operation.payload["categoryId"] in [item["tempId"] for item in mapping_list]:
+                    operation.payload["categoryId"] = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.payload["categoryId"])
                 event_edit_request = event_schemas.EventEditRequest.model_validate(operation.payload)
                 await event_service.edit_event(int(operation.row_id), event_edit_request, current_user_id)
             elif operation.operation == "delete":
@@ -105,13 +109,17 @@ async def post_schedule_batch(
                 await event_service.delete_event(int(operation.row_id), current_user_id)
         elif operation.table_name == "tasks":
             if operation.operation == "create":
+                if "categoryId" in operation.payload and operation.payload["categoryId"] in [item["tempId"] for item in mapping_list]:
+                    operation.payload["categoryId"] = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.payload["categoryId"])
                 task_create_request = task_schemas.TaskCreateRequest.model_validate(operation.payload)
                 real_task = await task_service.create_task(task_create_request, current_user_id)
                 mapping_list.append({"tableName": "tasks", "tempId": operation.row_id, "serverId": real_task.id})
             elif operation.operation == "update":
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "tasks"]:
                     operation.row_id = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.row_id and item["tableName"] == "tasks")
-                task_edit_request = task_schemas.TaskEditRequest.model_validate(operation.payload)
+                if "categoryId" in operation.payload and operation.payload["categoryId"] in [item["tempId"] for item in mapping_list]:
+                    operation.payload["categoryId"] = next(item["serverId"] for item in mapping_list if item["tempId"] == operation.payload["categoryId"])
+                task_edit_request = task_schemas.TaskEditRequest.model_validate(operation.payload)             
                 await task_service.edit_task(int(operation.row_id), task_edit_request, current_user_id)
             elif operation.operation == "delete":
                 if operation.row_id in [item["tempId"] for item in mapping_list if item["tableName"] == "tasks"]:
