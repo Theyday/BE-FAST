@@ -90,12 +90,13 @@ class TaskService:
 
         new_task = task_models.Task(
             name=request.name,
+            description=request.description,
             location=request.location,
             scheduled_time=request.scheduled_time,
             start_time=request.start_time,
             end_time=request.end_time,
-            description=request.description,
-            visibility=request.visibility
+            visibility=request.visibility,
+            is_completed=False
         )
         await task_crud.save(self.db, new_task)
 
