@@ -90,12 +90,13 @@ class TaskService:
 
         new_task = task_models.Task(
             name=request.name,
+            description=request.description,
             location=request.location,
             scheduled_time=request.scheduled_time,
             start_time=request.start_time,
             end_time=request.end_time,
-            description=request.description,
-            visibility=request.visibility
+            visibility=request.visibility,
+            is_completed=False
         )
         await task_crud.save(self.db, new_task)
 
@@ -103,7 +104,8 @@ class TaskService:
             task_id=new_task.id,
             user_id=user.id,
             role="OWNER",
-            category_id=category.id
+            category_id=category.id,
+            status="ACCEPTED"
         )
         await participant_crud.save(self.db, participant)
 

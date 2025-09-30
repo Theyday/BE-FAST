@@ -56,6 +56,7 @@ class TaskCreateRequest(BaseModel):
     start_time: Optional[datetime] = Field(None, alias="startTime")
     end_time: Optional[datetime] = Field(None, alias="endTime")
     description: Optional[str] = None
+    visibility: Visibility
     category_id: Optional[int] = Field(None, alias="categoryId")
     alert: Optional[TaskAlertResponse] = None
     is_completed: bool = Field(False, alias="isCompleted")
