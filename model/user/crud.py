@@ -64,10 +64,9 @@ class UserDeviceTokenCRUD:
         await db.refresh(device_token)
         return device_token
     
-    async def delete_by_token(self, db: AsyncSession, token: str, user_id: int) -> None:
+    async def delete_by_token(self, db: AsyncSession, token: str) -> None:
         await db.execute(delete(device_token_models.UserDeviceToken).filter(
-            device_token_models.UserDeviceToken.token == token,
-            device_token_models.UserDeviceToken.user_id == user_id
+            device_token_models.UserDeviceToken.token == token
         ))
         await db.commit()
 
