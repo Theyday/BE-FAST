@@ -140,6 +140,6 @@ class UserService:
             )
             await user_device_token_crud.save_device_token(self.db, new_device_token)
 
-    async def delete_device_token(self, token: str, user_id: int) -> None:
+    async def delete_device_token(self, token: str) -> None:
         # user_id를 사용하여 특정 사용자의 디바이스 토큰만 삭제하도록 변경
-        await user_device_token_crud.delete_by_token(self.db, token, user_id)
+        await user_device_token_crud.delete_by_token(self.db, token)
