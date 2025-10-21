@@ -7,8 +7,6 @@ from app.services.notification_service import start_scheduler, stop_scheduler
 from fastapi.responses import Response 
 from model.database import engine, get_async_session
 
-from model.setting.alerts.init_database import init_database as init_alert_database
-
 app = FastAPI(title=settings.PROJECT_NAME,
               openapi_url=f"{settings.API_V1_STR}/openapi.json")
 
@@ -33,14 +31,10 @@ app = FastAPI(title=settings.PROJECT_NAME,
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
-init_alert_database
-
 @app.on_event("startup")
 async def startup_event():
     """앱 시작 시 스케줄러 시작"""
     start_scheduler()
-    await init_alert_database(engine)
-
 
 @app.on_event("shutdown")
 async def shutdown_event():

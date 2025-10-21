@@ -11,7 +11,7 @@ from core.config import settings
 from core.jwt_security import create_access_token, create_refresh_token # JWT 헬퍼 함수 임포트
 from model.database import get_async_session # 비동기 세션 임포트
 from model.user.crud import user_crud, user_device_token_crud
-from model.setting.alerts.crud import alert_crud
+from model.setting.alert.crud import alert_crud
 from model.category.crud import category_crud
 from model.schedule.routine.crud import routine_crud
 from model.user import models as user_models

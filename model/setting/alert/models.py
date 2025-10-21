@@ -4,7 +4,7 @@ from sqlalchemy.orm import relationship
 from model.base_time_model import BaseTimeModel
 
 class UserAlert(BaseTimeModel):
-    __tablename__ = "alerts"
+    __tablename__ = "user_alert_tb"
 
     id = Column(BigInteger, primary_key=True, index=True)
     user_id = Column(BigInteger, ForeignKey("user_tb.id"), nullable=False)

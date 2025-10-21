@@ -23,6 +23,7 @@ from model.schedule.routine import models as routine_models
 from model.schedule.participant import models as participant_models
 from model.schedule.alert import models as alert_models
 from model.user.deviceToken import models as device_token_models
+from model.setting.alert import models as alert_models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
