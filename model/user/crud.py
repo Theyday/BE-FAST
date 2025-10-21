@@ -10,6 +10,10 @@ from . import models, schemas
 from ..user.deviceToken import models as device_token_models
 
 class UserCRUD:
+    async def get_all_users(self, db: AsyncSession) -> List[models.User]:
+        result = await db.execute(select(models.User))
+        return result.scalars().all()
+
     async def get_user_by_id(self, db: AsyncSession, user_id: int) -> Optional[models.User]:
         result = await db.execute(select(models.User).filter(models.User.id == user_id))
         return result.scalars().first()

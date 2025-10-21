@@ -16,14 +16,14 @@ class BaseConfig(BaseSettings):
     DB_HOST: str = 'localhost'
     DB_PORT: int = 5432
     DB_NAME: str = 'theyday'
-    USER: str = 'monstazo'
-    PASSWORD: str = 'tidlsl!2'
+    DB_USER: str = 'senghyuk66'  # 필드명을 DB_USER로 변경
+    DB_PASSWORD: str = 'zz'      # 필드명을 DB_PASSWORD로 변경
     DB_SSLMODE: str = 'require' # 기본값을 'require'로 설정
     
     @computed_field
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
-        return f'postgresql://{self.USER}:{self.PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}'
+        return f'postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}'
 
     # JWT Settings
     SECRET_KEY: str = '404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970'

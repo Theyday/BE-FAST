@@ -1,5 +1,5 @@
 from datetime import date, time, datetime
-from typing import Optional, Union
+from typing import Optional, Union, Literal
 from pydantic import BaseModel, Field
 
 
@@ -14,7 +14,7 @@ class CategoryInfo(BaseModel):
 
 class AIEventResponse(BaseModel):
     id: Optional[int] = None
-    type: str
+    type: Literal["EVENT"] = "EVENT"
     name: str
     location: Optional[str] = None
     start_date: date = Field(alias="startDate")
