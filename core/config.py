@@ -16,8 +16,8 @@ class BaseConfig(BaseSettings):
     DB_HOST: str = 'localhost'
     DB_PORT: int = 5432
     DB_NAME: str = 'theyday'
-    DB_USER: str = 'senghyuk66'  # 필드명을 DB_USER로 변경
-    DB_PASSWORD: str = 'zz'      # 필드명을 DB_PASSWORD로 변경
+    DB_USER: str = 'monstazo'  # 필드명을 DB_USER로 변경
+    DB_PASSWORD: str = 'tidlsl!2'      # 필드명을 DB_PASSWORD로 변경
     DB_SSLMODE: str = 'require' # 기본값을 'require'로 설정
     
     @computed_field

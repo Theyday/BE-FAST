@@ -181,7 +181,6 @@ class AiService:
 
         user_categories = await category_crud.find_by_user_order_by_created(self.db, user)
         category_infos = [CategoryInfo(id=c.id, name=c.name) for c in user_categories]
-
         items = await self._parse_text_with_ai(request.text, category_infos)
         if not items or len(items) == 0:
             raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="텍스트 분석에 실패했습니다")
@@ -377,8 +376,14 @@ TASK의 시간 정보는 ISO-8601(yyyy-MM-dd'T'HH:mm:ss) 형식을 사용해야 
 - **scheduledTime**: 사용자가 이 할 일을 하기로 계획한 특정 시간. `yyyy-MM-dd'T'HH:mm:ss` 형식. 정확히 어떤 시간에 할지 명확하지 않다면 null 무조건.
 - startTime <= scheduledTime <= endTime 을 만족해야 한다.
 - scheduledTime은 현재 시각 이후여야 한다.
+
+## 카테고리 지정 규칙
+- category 필드는 반드시 **카테고리 id(문자열)**로만 지정해야 한다. 
+- 이름(name)이 아니라 id(예: "1", "3", ...) 만 사용하라.
+- category에 카테고리 이름을 절대 넣지 마라. 반드시 id만 넣어라.
+
 """
-        # [CHANGED] 프롬프트: "JSON 배열만" + 분할 규칙 간결화
+        # [CHANGED] 프롬프트: "JSON 배열만" + 분할 규칙 간결화 + category id 명시
         prompt_template = """
 # 입력 텍스트
 {text}
@@ -394,6 +399,7 @@ TASK의 시간 정보는 ISO-8601(yyyy-MM-dd'T'HH:mm:ss) 형식을 사용해야 
   - startTime <= scheduledTime <= endTime (scheduledTime이 있을 경우)
   - scheduledTime은 현재 시각 이후여야 한다.
 - 정확한 시간 미정이면 TASK.scheduledTime은 반드시 null 이어야 한다.
+- category 필드는 반드시 카테고리 id(문자열)로 설정한다. 이름이 아니다.
 - 출력은 JSON 배열 하나만 반환한다. 하나만 요청하더라도 배열로 감싸서 반환한다.
 """
 
@@ -410,11 +416,9 @@ TASK의 시간 정보는 ISO-8601(yyyy-MM-dd'T'HH:mm:ss) 형식을 사용해야 
                 contents=f"{system_prompt}\n{user_prompt}",
                 config=GENERATION_CONFIG,
             )
-
+            
             # Gemini Structured Output은 JSON 문자열이 그대로 반환됨
             items = json.loads(response.text)  # [CHANGED] 배열 전체 로드
-
-            print(f"AI raw response: {response.text}")
 
             if not isinstance(items, list) or not items:
                 raise ValueError("LLM 응답이 빈 배열이거나 리스트가 아닙니다")
