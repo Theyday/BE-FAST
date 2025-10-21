@@ -16,3 +16,4 @@ class User(BaseTimeModel):
     participants = relationship("Participant", back_populates="user")
     device_tokens = relationship("UserDeviceToken", back_populates="user")
     categories = relationship("Category", back_populates="user")
+    alerts = relationship("UserAlert", back_populates="user")

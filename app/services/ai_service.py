@@ -1,8 +1,9 @@
 import json
-from datetime import date, datetime, time
-from typing import List, Dict, Any, Union
+from datetime import date, datetime, time, timezone, timedelta
+from typing import List, Dict, Any, Union, Optional
 
 from google import genai
+from google.genai.types import Schema, Type
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,11 +31,147 @@ class CustomException(HTTPException):
     def __init__(self, status_code: int, detail: str):
         super().__init__(status_code=status_code, detail=detail)
 
+ARRAY_SCHEMA = Schema(
+    type=Type.ARRAY,
+    items=Schema(
+        type=Type.OBJECT,
+        properties={
+            "type":          Schema(type=Type.STRING, enum=["EVENT", "TASK"]),
+            "name":          Schema(type=Type.STRING),
+            "location":      Schema(type=Type.STRING, nullable=True),
+            "category":      Schema(type=Type.STRING),
+
+            # EVENT 전용(없으면 null 허용)
+            "startDate":     Schema(type=Type.STRING, nullable=True),
+            "endDate":       Schema(type=Type.STRING, nullable=True),
+            "startTime":     Schema(type=Type.STRING, nullable=True),
+            "endTime":       Schema(type=Type.STRING, nullable=True),
+
+            # TASK 전용(없으면 null 허용)
+            "scheduledTime": Schema(type=Type.STRING, nullable=True),
+        },
+        required=["type", "name", "category"],  # 공통 필수만 강제
+        # ⚠️ 여기서 'additionalProperties' 또는 'additional_properties' 절대 넣지 마세요.
+    ),
+)
+
+GENERATION_CONFIG = {  # Gemini 1.5/2.0/2.5 계열 Structured Output
+    "temperature": 0.0,
+    "top_p": 0.9,
+    "response_mime_type": "application/json",
+    "response_schema": ARRAY_SCHEMA,
+}
+
+MODEL_NAME = "gemini-2.5-flash-lite"  # [CHANGED] 사용 중인 모델명 유지
+KST = timezone(timedelta(hours=9))     # [ADDED]
 
 class AiService:
     def __init__(self, db: AsyncSession = Depends(get_async_session)):
         self.db = db
         self.client = genai.Client(api_key=settings.GEMINI_API_KEY)
+
+    # ==========================
+    # [ADDED] 다건 생성 (인증)
+    # ==========================
+    async def create_from_text_many(self, request: CreateFromTextRequest, current_user_id: int) -> List[Union[AIEventResponse, AITaskResponse]]:
+        user = await user_crud.get_user_by_id(self.db, current_user_id)
+        if not user:
+            raise CustomException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        user_categories = await category_crud.find_by_user_order_by_created(self.db, user)
+        category_infos = [CategoryInfo(id=c.id, name=c.name) for c in user_categories]
+
+        parsed_items = await self._parse_text_with_ai(request.text, category_infos)  # [CHANGED] 배열
+        if not parsed_items:
+            raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="텍스트 분석에 실패했습니다")
+
+        results: List[Union[AIEventResponse, AITaskResponse]] = []
+        for item in parsed_items:
+            schedule_type = (item.get("type") or "").upper()
+            if schedule_type == "EVENT":
+                results.append(
+                    await self._create_event_from_parsed_result(item, user, user_categories, request.text)
+                )
+            elif schedule_type == "TASK":
+                # 서버-사이드 제약 점검(선택) - scheduledTime 범위 체크 등
+                self._validate_task_window(item)  # [ADDED]
+                results.append(
+                    await self._create_task_from_parsed_result(item, user, user_categories, request.text)
+                )
+            else:
+                raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="올바른 스케줄 타입을 인식하지 못했습니다")
+        return results
+
+    # ==========================================
+    # [ADDED] 다건 생성 (체험용; DB 저장 없이 응답)
+    # ==========================================
+    async def create_from_text_trial_many(self, request: CreateFromTextRequest) -> List[Union[AIEventResponse, AITaskResponse]]:
+        category_infos = [CategoryInfo(id=1, name="일정")]
+        print(1)
+        parsed_items = await self._parse_text_with_ai(request.text, category_infos)  # [CHANGED] 배열
+        if not parsed_items:
+            raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="텍스트 분석에 실패했습니다")
+
+        results: List[Union[AIEventResponse, AITaskResponse]] = []
+        for item in parsed_items:
+            schedule_type = (item.get("type") or "").upper()
+            if schedule_type == "EVENT":
+                results.append(
+                    AIEventResponse(
+                        name=item.get("name", ""),
+                        location=item.get("location"),
+                        start_date=date.fromisoformat(item["startDate"]),
+                        end_date=date.fromisoformat(item["endDate"]),
+                        start_time=time.fromisoformat(item["startTime"]) if item.get("startTime") else None,
+                        end_time=time.fromisoformat(item["endTime"]) if item.get("endTime") else None,
+                        visibility="PRIVATE",
+                        color="#0090FF"
+                    )
+                )
+            elif schedule_type == "TASK":
+                self._validate_task_window(item)  # [ADDED]
+                results.append(
+                    AITaskResponse(
+                        name=item.get("name", ""),
+                        location=item.get("location"),
+                        start_time=datetime.fromisoformat(item["startTime"]) if item.get("startTime") else None,
+                        end_time=datetime.fromisoformat(item["endTime"]) if item.get("endTime") else None,
+                        scheduled_time=datetime.fromisoformat(item["scheduledTime"]) if item.get("scheduledTime") else None,
+                        is_completed=False,
+                        visibility="PRIVATE",
+                        color="#0090FF"
+                    )
+                )
+            else:
+                raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="올바른 스케줄 타입을 인식하지 못했습니다")
+        return results
+
+    # ------------------------------
+    # [ADDED] 서버-사이드 TASK 제약 검사
+    # ------------------------------
+    def _validate_task_window(self, item: Dict[str, Any]) -> None:
+        st = item.get("startTime")
+        et = item.get("endTime")
+        sc = item.get("scheduledTime")
+        try:
+            st_dt = datetime.fromisoformat(st) if st else None
+            et_dt = datetime.fromisoformat(et) if et else None
+            sc_dt = datetime.fromisoformat(sc) if sc else None
+        except Exception:
+            raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="TASK 시간 형식이 올바르지 않습니다")
+
+        # scheduledTime은 미래 시각
+        if sc_dt and sc_dt.astimezone(KST) <= datetime.now(KST):
+            raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="scheduledTime은 현재 이후여야 합니다")
+
+        # 범위 제약 start <= scheduled <= end
+        if st_dt and et_dt and sc_dt:
+            if not (st_dt <= sc_dt <= et_dt):
+                raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="startTime <= scheduledTime <= endTime 제약 위반")
+
+        # start/end 순서
+        if st_dt and et_dt and et_dt < st_dt:
+            raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="endTime은 startTime 이후여야 합니다")
 
     async def create_from_text(self, request: CreateFromTextRequest, current_user_id: int) -> Union[AIEventResponse, AITaskResponse]:
         """텍스트로부터 EVENT 또는 TASK 생성 (인증된 사용자용)"""
@@ -45,11 +182,11 @@ class AiService:
         user_categories = await category_crud.find_by_user_order_by_created(self.db, user)
         category_infos = [CategoryInfo(id=c.id, name=c.name) for c in user_categories]
 
-        parsed_result = await self._parse_text_with_ai(request.text, category_infos)
-        
-        if not parsed_result:
+        items = await self._parse_text_with_ai(request.text, category_infos)
+        if not items or len(items) == 0:
             raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="텍스트 분석에 실패했습니다")
 
+        parsed_result = items[0]
         schedule_type = parsed_result.get("type", "").upper()
 
         if schedule_type == "EVENT":
@@ -62,12 +199,11 @@ class AiService:
     async def create_from_text_trial(self, request: CreateFromTextRequest) -> Union[AIEventResponse, AITaskResponse]:
         """텍스트로부터 EVENT 또는 TASK 생성 (체험용)"""
         category_infos = [CategoryInfo(id=1, name="일정")]
-
-        parsed_result = await self._parse_text_with_ai(request.text, category_infos)
-        
-        if not parsed_result:
+        items = await self._parse_text_with_ai(request.text, category_infos)
+        if not items or len(items) == 0:
             raise CustomException(status_code=status.HTTP_400_BAD_REQUEST, detail="텍스트 분석에 실패했습니다")
 
+        parsed_result = items[0]
         schedule_type = parsed_result.get("type", "").upper()
 
         if schedule_type == "EVENT":
@@ -208,36 +344,26 @@ class AiService:
             source_text=task.source_text,
             color=category.color
         )
-
-    async def _parse_text_with_ai(self, text: str, categories: List[CategoryInfo]) -> Dict[str, Any]:
-        """AI를 사용하여 텍스트 파싱"""
+    
+    # ======================================================================
+    # [CHANGED] LLM 파서: 단일 JSON → 배열(JSON Structured Output 강제)
+    # ======================================================================
+    async def _parse_text_with_ai(self, text: str, categories: List[CategoryInfo]) -> List[Dict[str, Any]]:
+        """AI를 사용하여 텍스트 파싱 (여러 항목 배열을 반환)"""
         if not self.client:
             raise CustomException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="AI 서비스가 설정되지 않았습니다")
 
         today = date.today()
         categories_json = json.dumps([{"id": c.id, "name": c.name} for c in categories], ensure_ascii=False)
+        system_prompt = """
+너는 사용자의 입력을 분석해 항목을 'EVENT' 또는 'TASK'로 분리하고, 
+오직 JSON 배열만 출력한다. 
+설명이나 마크다운 문법을 절대 포함하지 마라. 
+모든 출력은 지정된 스키마를 반드시 따라야 한다. 
+타임존은 Asia/Seoul(+09:00)이다. 
 
-        prompt_template = """
-# 페르소나
-너는 사용자가 입력한 한 줄의 텍스트를 분석해서, 그 의도를 파악하고 'EVENT' 또는 'TASK'로 분류한 뒤, 완벽한 JSON 데이터를 생성하는 AI 시간 관리 비서야.
-
-# 입력 텍스트
-{text}
-
-# 핵심 원칙: EVENT vs TASK 구분 철학
-너의 가장 중요한 임무는 'EVENT'와 'TASK'를 명확히 구분하는 것이다.
-- **EVENT**: '시간의 점유'에 초점을 맞춘다. 사용자가 특정 시간(예: "저녁 9시")을 어떤 활동으로 '보내기로' 확정한 경우다. 약속, 회의, 예약 등이 해당한다. **"내일 저녁 9시 운동"은 9시라는 시간을 점유하므로 EVENT다.**
-- **TASK**: '결과의 완수'에 초점을 맞춘다. 특정 시점까지(예: "내일까지") 어떤 행동을 '완료해야' 하는 경우다. 제출, 구매, 연락 등이 해당한다. **"내일까지 운동하기"는 완료가 중요하므로 TASK다.**
-
-# 데이터 필드 명세
-오늘 날짜의 기준은 {today} 이다. 사용자가 날짜를 지정한 경우(예: '15일', '다음주 월요일')에는 그 날짜를 우선적으로 해석한다. 날짜 정보가 명확하지 않고 기간으로 해석될 여지가 있을 때만 이 기준을 사용해서 추론하라.
-
-## 공통 필드
-- **type (필수)**: 위의 철학에 따라 'EVENT' 또는 'TASK' 중 하나를 결정한다.
-- **name (필수)**: 일정의 제목을 간결하게 요약한다.
-- **location**: 장소 정보가 있다면 포함한다.
-- **category (필수)**: 아래 주어진 카테고리 목록 중 가장 적합한 것의 `id` 값을 문자열로 반환한다.
-    {categories}
+EVENT의 날짜는 yyyy-MM-dd 형식(시간은 HH:mm:ss 형식)을 사용하고,  
+TASK의 시간 정보는 ISO-8601(yyyy-MM-dd'T'HH:mm:ss) 형식을 사용해야 한다.
 
 ## type이 EVENT일 경우
 - **startDate (필수)**: 이벤트 시작 날짜. `yyyy-MM-dd` 형식.
@@ -251,49 +377,141 @@ class AiService:
 - **scheduledTime**: 사용자가 이 할 일을 하기로 계획한 특정 시간. `yyyy-MM-dd'T'HH:mm:ss` 형식. 정확히 어떤 시간에 할지 명확하지 않다면 null 무조건.
 - startTime <= scheduledTime <= endTime 을 만족해야 한다.
 - scheduledTime은 현재 시각 이후여야 한다.
+"""
+        # [CHANGED] 프롬프트: "JSON 배열만" + 분할 규칙 간결화
+        prompt_template = """
+# 입력 텍스트
+{text}
 
-# 응답 형식
-반드시 아래 예시처럼 JSON 객체 하나만 응답해야 한다. JSON 이외의 설명, 안내, 텍스트, 마크다운 기호 등은 절대 포함하지 마라.
-```json
-{{
-  "type": "EVENT",
-  "name": "팀 회의",
-  "location": "강남역 10번 출구",
-  "category": "123",
-  "startDate": "2024-05-21",
-  "endDate": "2024-05-21",
-  "startTime": "15:00:00",
-  "endTime": "16:30:00"
-}}
-```
+# 기준
+오늘 날짜: {today}
+카테고리 목록(선택 시 id 문자열로): {categories}
+
+# 규칙 요약
+- 여러 요청(그리고/및/콤마/줄바꿈 등)은 각각 별도 항목으로 분리한다.
+- EVENT(시간 점유) vs TASK(완수/마감) 판단 원칙을 따른다.
+- TASK 제약 조건:
+  - startTime <= scheduledTime <= endTime (scheduledTime이 있을 경우)
+  - scheduledTime은 현재 시각 이후여야 한다.
+- 정확한 시간 미정이면 TASK.scheduledTime은 반드시 null 이어야 한다.
+- 출력은 JSON 배열 하나만 반환한다. 하나만 요청하더라도 배열로 감싸서 반환한다.
 """
 
-        prompt = prompt_template.format(
-            text=text, 
+        user_prompt = prompt_template.format(
+            text=text,
             today=today.strftime("%Y-%m-%d"),
             categories=categories_json
         )
 
         try:
+            # [CHANGED] Structured Output 사용
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash-lite",
-                contents=prompt,
-            )  
-                
-            
-            raw_response = response.text
+                model=MODEL_NAME,
+                contents=f"{system_prompt}\n{user_prompt}",
+                config=GENERATION_CONFIG,
+            )
 
-            # JSON 추출
-            start_idx = raw_response.find('{')
-            end_idx = raw_response.rfind('}')
-            
-            if start_idx == -1 or end_idx == -1:
-                raise ValueError("JSON not found in response")
-                
-            json_response = raw_response[start_idx:end_idx + 1]
-            
-            return json.loads(json_response)
+            # Gemini Structured Output은 JSON 문자열이 그대로 반환됨
+            items = json.loads(response.text)  # [CHANGED] 배열 전체 로드
+
+            print(f"AI raw response: {response.text}")
+
+            if not isinstance(items, list) or not items:
+                raise ValueError("LLM 응답이 빈 배열이거나 리스트가 아닙니다")
+
+            return items
 
         except Exception as e:
             print(f"AI parsing error: {e}")
             raise CustomException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="텍스트 분석 중 오류가 발생했습니다")
+
+
+#     # ====== 이건 이전 버전 (단일 JSON 응답) ============================
+#     async def _parse_text_with_ai(self, text: str, categories: List[CategoryInfo]) -> Dict[str, Any]:
+#         """AI를 사용하여 텍스트 파싱"""
+#         if not self.client:
+#             raise CustomException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="AI 서비스가 설정되지 않았습니다")
+
+#         today = date.today()
+#         categories_json = json.dumps([{"id": c.id, "name": c.name} for c in categories], ensure_ascii=False)
+
+#         prompt_template = """
+# # 페르소나
+# 너는 사용자가 입력한 한 줄의 텍스트를 분석해서, 그 의도를 파악하고 'EVENT' 또는 'TASK'로 분류한 뒤, 완벽한 JSON 데이터를 생성하는 AI 시간 관리 비서야.
+
+# # 입력 텍스트
+# {text}
+
+# # 핵심 원칙: EVENT vs TASK 구분 철학
+# 너의 가장 중요한 임무는 'EVENT'와 'TASK'를 명확히 구분하는 것이다.
+# - **EVENT**: '시간의 점유'에 초점을 맞춘다. 사용자가 특정 시간(예: "저녁 9시")을 어떤 활동으로 '보내기로' 확정한 경우다. 약속, 회의, 예약 등이 해당한다. **"내일 저녁 9시 운동"은 9시라는 시간을 점유하므로 EVENT다.**
+# - **TASK**: '결과의 완수'에 초점을 맞춘다. 특정 시점까지(예: "내일까지") 어떤 행동을 '완료해야' 하는 경우다. 제출, 구매, 연락 등이 해당한다. **"내일까지 운동하기"는 완료가 중요하므로 TASK다.**
+
+# # 데이터 필드 명세
+# 오늘 날짜의 기준은 {today} 이다. 사용자가 날짜를 지정한 경우(예: '15일', '다음주 월요일')에는 그 날짜를 우선적으로 해석한다. 날짜 정보가 명확하지 않고 기간으로 해석될 여지가 있을 때만 이 기준을 사용해서 추론하라.
+
+# ## 공통 필드
+# - **type (필수)**: 위의 철학에 따라 'EVENT' 또는 'TASK' 중 하나를 결정한다.
+# - **name (필수)**: 일정의 제목을 간결하게 요약한다.
+# - **location**: 장소 정보가 있다면 포함한다.
+# - **category (필수)**: 아래 주어진 카테고리 목록 중 가장 적합한 것의 `id` 값을 문자열로 반환한다.
+#     {categories}
+
+# ## type이 EVENT일 경우
+# - **startDate (필수)**: 이벤트 시작 날짜. `yyyy-MM-dd` 형식.
+# - **endDate (필수)**: 이벤트 종료 날짜. `yyyy-MM-dd` 형식.
+# - **startTime**: 이벤트 시작 시간. `HH:mm:ss` 형식. 시간이 명시되지 않았다면 null.
+# - **endTime**: 이벤트 종료 시간. `HH:mm:ss` 형식. 종료 시간이 명시되지 않았다면 null.
+
+# ## type이 TASK일 경우
+# - **startTime**: 할 일을 시작할 수 있는 기간의 시작. `yyyy-MM-dd'T'HH:mm:ss` 형식. 시작 시간이 명시되지 않았다면 null.
+# - **endTime**: 할 일을 완료해야 하는 마감 기한. `yyyy-MM-dd'T'HH:mm:ss` 형식. 마감 기한이 명시되지 않았다면 null.
+# - **scheduledTime**: 사용자가 이 할 일을 하기로 계획한 특정 시간. `yyyy-MM-dd'T'HH:mm:ss` 형식. 정확히 어떤 시간에 할지 명확하지 않다면 null 무조건.
+# - startTime <= scheduledTime <= endTime 을 만족해야 한다.
+# - scheduledTime은 현재 시각 이후여야 한다.
+
+# # 응답 형식
+# 반드시 아래 예시처럼 JSON 객체 하나만 응답해야 한다. JSON 이외의 설명, 안내, 텍스트, 마크다운 기호 등은 절대 포함하지 마라.
+# ```json
+# {{
+#   "type": "EVENT",
+#   "name": "팀 회의",
+#   "location": "강남역 10번 출구",
+#   "category": "123",
+#   "startDate": "2024-05-21",
+#   "endDate": "2024-05-21",
+#   "startTime": "15:00:00",
+#   "endTime": "16:30:00"
+# }}
+# ```
+# """
+
+#         prompt = prompt_template.format(
+#             text=text, 
+#             today=today.strftime("%Y-%m-%d"),
+#             categories=categories_json
+#         )
+
+#         try:
+#             response = self.client.models.generate_content(
+#                 model="gemini-2.5-flash-lite",
+#                 contents=prompt,
+#             )  
+                
+            
+#             raw_response = response.text
+
+#             # JSON 추출
+#             start_idx = raw_response.find('{')
+#             end_idx = raw_response.rfind('}')
+            
+#             if start_idx == -1 or end_idx == -1:
+#                 raise ValueError("JSON not found in response")
+                
+#             json_response = raw_response[start_idx:end_idx + 1]
+            
+#             return json.loads(json_response)
+
+#         except Exception as e:
+#             print(f"AI parsing error: {e}")
+#             raise CustomException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="텍스트 분석 중 오류가 발생했습니다")

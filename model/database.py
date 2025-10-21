@@ -1,8 +1,11 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from core.config import settings
 import ssl
+from .base_time_model import Base  # base_time_model의 Base 사용
 
 DATABASE_URL = settings.SQLALCHEMY_DATABASE_URI.replace("postgresql://", "postgresql+asyncpg://")
+
+# Base는 base_time_model에서 import
 
 # DB_SSLMODE 값에 따라 asyncpg에 맞는 SSL 설정을 구성합니다.
 connect_args = {}

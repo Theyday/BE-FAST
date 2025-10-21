@@ -11,6 +11,7 @@ from core.config import settings
 from core.jwt_security import create_access_token, create_refresh_token # JWT 헬퍼 함수 임포트
 from model.database import get_async_session # 비동기 세션 임포트
 from model.user.crud import user_crud, user_device_token_crud
+from model.setting.alerts.crud import alert_crud
 from model.category.crud import category_crud
 from model.schedule.routine.crud import routine_crud
 from model.user import models as user_models
@@ -107,7 +108,9 @@ class UserService:
         user = await user_crud.create_user(self.db, request)
 
         await category_crud.create_default(self.db, user)
+        await alert_crud.create_default_alert_setting(self.db, user.id)
         await routine_crud.create_default_routines_for_user(self.db, user)
+        await user_crud.create_user(self.db, request)
 
         identity = user.id 
         access_token = create_access_token(data={"sub": str(identity)})
