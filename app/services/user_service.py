@@ -122,7 +122,7 @@ class UserService:
         
         access_token = create_access_token(data={"sub": str(current_user_id)})
         refresh_token = create_refresh_token(data={"sub": str(current_user_id)})
-        return user_schemas.TokenResponse(accessToken=access_token, refreshToken=refresh_token)
+        return user_schemas.TokenResponse(accessToken=access_token, refreshToken=refresh_token, userId=current_user_id)
 
     async def register_device_token(self, request: user_schemas.DeviceTokenRequest, user_id: Optional[int]) -> None:
         device_token = await user_device_token_crud.find_by_token(self.db, request.token)
